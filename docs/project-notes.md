@@ -5,6 +5,7 @@
 FuelFinder is a full-stack web application that helps drivers find nearby gas stations, compare user-submitted fuel prices, and calculate whether driving farther for cheaper gas actually saves money.
 
 ## Concepts Implemented
+##
 
 - Core Java
 - Spring Boot
@@ -68,3 +69,23 @@ Concepts learned:
 - JpaRepository provides built-in methods like findAll() and save().
 - Spring Boot converts Java objects into JSON responses.
 - Hibernate/JPA turns repository methods into SQL queries.
+
+## My Notes
+Project Structure:
+- Controller: receives HTTP requests from the browser, does not talk directly to database, instead it calls the service
+- Service: contains the application's business logic, eventually will sort station by price, calculate savings, validate user input
+- Repository: communicates with MySQL, JpaRepository gives methods like findAll(), save(), findById(), etc.
+- Database: MySQL permanently stores application data
+
+-- SpringBoot connects to MySQL through settings in application.properties
+-- We used an environment variable for the password so the real password would not be committed to GitHub.
+
+We created a MySQL table for gas stations:
+- id
+- name
+- address
+- city
+- state
+- zip_code
+
+-- The Station Java class represents a station inside the application, also maps it to the stations table
