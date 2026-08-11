@@ -1,19 +1,22 @@
 package com.fuelfinder.backend.model;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
-// entity means this java class should be stored in the database
-@Entity
-@Table(name = "stations")
-// represents the database table
-public class Station {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+@Entity // Tells JPA that this Java class represents database data.
+@Table(name = "stations") // Connects the class to the stations table.
+
+public class Station { 
+    // this class represents a station inside the application
+    // it also maps to the stations table
+
+    @Id // marks the primary key
+    @GeneratedValue(strategy = GenerationType.IDENTITY) // Tells MySQL to automatically generate the ID.
     private Long id;
 
     private String name;
@@ -21,17 +24,21 @@ public class Station {
     private String city;
     private String state;
 
+    @Column(name = "zip_code") // Connects the Java variable zipCode to the SQL column zip_code.
+    private String zipCode;
+
     private Double latitude;
     private Double longitude;
 
     public Station() {
     }
 
-    public Station(String name, String address, String city, String state, Double latitude, Double longitude) {
+    public Station(String name, String address, String city, String state, String zipCode, Double latitude, Double longitude) {
         this.name = name;
         this.address = address;
         this.city = city;
         this.state = state;
+        this.zipCode = zipCode;
         this.latitude = latitude;
         this.longitude = longitude;
     }
@@ -86,5 +93,13 @@ public class Station {
 
     public void setLongitude(Double longitude) {
         this.longitude = longitude;
+    }
+
+    public String getZipCode() {
+        return zipCode;
+    }
+
+    public void setZipCode(String zipCode) {
+        this.zipCode = zipCode;
     }
 }

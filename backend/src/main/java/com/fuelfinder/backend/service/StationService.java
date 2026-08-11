@@ -6,8 +6,10 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
-@Service
-// this class will contain business logic
+import javax.swing.Spring;
+
+@Service  // this class will contain business logic
+
 public class StationService {
 
     private final StationRepository stationRepository;
@@ -16,6 +18,8 @@ public class StationService {
     // this means that spring automatically gives StationService a stationRepository object
     public StationService(StationRepository stationRepository) {
         this.stationRepository = stationRepository;
+        // You do not manually write: new StationRepository();
+        // Spring creates and manages the object for you.
     }
 
     public List<Station> getAllStations() {
@@ -27,4 +31,12 @@ public class StationService {
     public Station createStation(Station station) {
         return stationRepository.save(station);
     }
+
+    // Later, the service can contain logic such as:
+        // Sorting stations by price
+        // Filtering by fuel type
+        // Calculating savings
+        // Validating user input
+
+
 }

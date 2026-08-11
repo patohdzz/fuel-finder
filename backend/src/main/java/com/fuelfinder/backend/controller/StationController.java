@@ -20,15 +20,48 @@ public class StationController {
         this.stationService = stationService;
     }
 
-    // when a GET request is sent, run this
+    // which gets every station
     @GetMapping("/api/stations")
     public List<Station> getAllStations() {
         return stationService.getAllStations();
     }
 
-    // Take the JSON sent by the user and turn it into a Java Station object.
+    // which creates a station
     @PostMapping("/api/stations")
     public Station createStation(@RequestBody Station station) {
         return stationService.createStation(station);
     }
 }
+
+// When the browser sends:
+
+// GET http://localhost:8080/api/stations
+
+// this happens:
+
+// Browser
+//    ↓
+// StationController.getAllStations()
+//    ↓
+// StationService.getAllStations()
+//    ↓
+// StationRepository.findAll()
+//    ↓
+// MySQL runs SELECT
+//    ↓
+// Station objects are returned
+//    ↓
+// Spring converts them to JSON
+
+// The response might look like:
+
+// [
+//   {
+//     "id": 1,
+//     "name": "Shell",
+//     "address": "123 Main Street",
+//     "city": "Arlington",
+//     "state": "TX",
+//     "zipCode": "76010"
+//   }
+// ]

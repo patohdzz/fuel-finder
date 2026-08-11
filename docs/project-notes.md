@@ -89,3 +89,59 @@ We created a MySQL table for gas stations:
 - zip_code
 
 -- The Station Java class represents a station inside the application, also maps it to the stations table
+
+
+## Spring/JPA Behind-the-Scenes Behavior (returned)
+
+1. Repository Interfaces
+StationRepository is only an interface, but Spring Data JPA automatically creates
+an implementation at runtime.
+
+This is why we can call methods like:
+
+stationRepository.findAll();
+stationRepository.save(...);
+stationRepository.findById(...);
+
+without writing the implementation ourselves.
+
+2. Entity-to-Table Mapping
+Station.java is marked with @Entity, so Hibernate/JPA knows it represents
+database data.
+
+Because application.properties contains:
+
+spring.jpa.hibernate.ddl-auto=update
+
+Hibernate compares our entities to the database schema when the application starts.
+If a required table does not exist, Hibernate can create it.
+
+Example:
+
+Station.java
+    ↓
+@Entity
+    ↓
+Hibernate / JPA
+    ↓
+stations table in MySQL
+
+This is why the stations table was automatically recreated on the new computer
+when Spring Boot connected to the new fuel_finder database.
+
+## Current flow
+Browser
+  ↓ GET /api/stations
+StationController
+  ↓
+StationService
+  ↓
+StationRepository.findAll()
+  ↓
+Hibernate / JPA
+  ↓
+MySQL stations table
+  ↓
+3 Station objects
+  ↓
+JSON response
