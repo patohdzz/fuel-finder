@@ -17,6 +17,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import com.fuelfinder.backend.dto.FuelPriceRequest;
 import com.fuelfinder.backend.dto.FuelPriceResponse;
 
+import jakarta.validation.Valid;
+
 @RestController // handles API requests
 public class FuelPriceController {
 
@@ -36,8 +38,10 @@ public class FuelPriceController {
         return fuelPriceService.getAllFuelPrices();
     }
 
+    // Spring applies the validation annotations inside FuelPriceRequest before calling your service. 
+    // If validation fails, Spring MVC raises a validation exception and returns 400 Bad Request by default.
     @PostMapping("/api/stations/{stationId}/prices")
-    public FuelPriceResponse createFuelPrice(@PathVariable Long stationId, @RequestBody FuelPriceRequest request) {
+    public FuelPriceResponse createFuelPrice(@PathVariable Long stationId, @Valid @RequestBody FuelPriceRequest request) {
         return fuelPriceService.createFuelPrice(stationId, request);
     }
 

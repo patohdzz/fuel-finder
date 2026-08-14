@@ -7,6 +7,7 @@ import org.hibernate.annotations.processing.Find;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.Optional;
 
 import com.fuelfinder.backend.model.FuelType;
 
@@ -45,6 +46,8 @@ public interface FuelPriceRepository extends JpaRepository<FuelPrice, Long> {
     )
     """)
     List<FuelPrice> findCheapestByFuelTypeAndZipCode(@Param("fuelType") FuelType fuelType, @Param("zipCode") String zipCode);
+
+    Optional<FuelPrice> findByStation_IdAndFuelType(Long stationId, FuelType fuelType);
     
 }    
 

@@ -14,6 +14,8 @@ import java.time.LocalDateTime;
 import com.fuelfinder.backend.dto.FuelPriceRequest;
 import com.fuelfinder.backend.dto.FuelPriceResponse;
 
+import com.fuelfinder.backend.exception.StationNotFoundException;
+
 @Service // this class will contain business logic
 public class FuelPriceService {
 
@@ -35,11 +37,12 @@ public class FuelPriceService {
             // SELECT *
             // FROM stations
             // WHERE id = 1;
-        Station station = stationRepository.findById(stationId).orElseThrow(() -> new RuntimeException("Station not found"));
+        Station station = stationRepository.findById(stationId).orElseThrow(() -> new StationNotFoundException(stationId));
         // If the station doesn't exist, stop and throw an error instead of trying to create a price for a nonexistent station. 
         // That protects our foreign-key relationship.
 
-        FuelPrice fuelPrice = new FuelPrice();
+        // look for if one exists already, if so update it, if not create a new one
+        FuelPrice fuelPrice = fuelPriceRepository.findByStation_IdAndFuelType(stationId, request.getFuelType()).orElse(new FuelPrice());
         // We're creating the actual database entity ourselves.
         // Then we copy only the fields the client is allowed to control:
         fuelPrice.setPrice(request.getPrice());
@@ -47,6 +50,7 @@ public class FuelPriceService {
         fuelPrice.setStation(station); // connects the Java objects
         fuelPrice.setLastUpdated(LocalDateTime.now());
 
+        // results in either and update or an insert
         FuelPrice savedFuelPrice = fuelPriceRepository.save(fuelPrice);
 
         return toResponse(savedFuelPrice);
