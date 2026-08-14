@@ -3767,3 +3767,1578 @@ JSON
 ```
 
 If I can confidently explain these flows without looking at the code, then I understand many of the most important concepts FuelFinder has taught so far.
+
+
+# 76. Latest-Price-Only Design
+
+For the current FuelFinder MVP, we decided **not to keep fuel-price history yet**.
+
+Instead, each station should have at most one current price for each fuel type.
+
+The important combination is:
+
+```text
+station + fuelType
+```
+
+For example, these are all separate valid records:
+
+```text
+Shell + REGULAR
+Shell + MIDGRADE
+Shell + PREMIUM
+Exxon + REGULAR
+Exxon + PREMIUM
+```
+
+But this should not happen:
+
+```text
+Shell + REGULAR → $2.79
+Shell + REGULAR → $2.85
+Shell + REGULAR → $2.92
+```
+
+Instead, submitting a new regular price for Shell should update the existing Shell + REGULAR record.
+
+The rule is:
+
+```text
+same station + same fuel type
+→ UPDATE existing price
+```
+
+```text
+same station + different fuel type
+→ INSERT new record
+```
+
+```text
+different station + same fuel type
+→ INSERT new record
+```
+
+```text
+different station + different fuel type
+→ INSERT new record
+```
+
+This means the database stores the **latest/current price** for each station and fuel type.
+
+---
+
+# 77. Finding an Existing Station + Fuel Type
+
+To support the latest-price-only design, `FuelPriceRepository` contains:
+
+```java
+Optional<FuelPrice> findByStation_IdAndFuelType(
+        Long stationId,
+        FuelType fuelType);
+```
+
+Spring Data JPA interprets:
+
+```text
+findByStation_IdAndFuelType
+```
+
+as:
+
+```text
+Find a FuelPrice where:
+
+station.id = stationId
+AND
+fuelType = fuelType
+```
+
+Conceptually:
+
+```java
+findByStation_IdAndFuelType(
+        1L,
+        FuelType.REGULAR
+);
+```
+
+becomes approximately:
+
+```sql
+SELECT *
+FROM fuel_prices
+WHERE station_id = 1
+AND fuel_type = 'REGULAR';
+```
+
+The return type is:
+
+```java
+Optional<FuelPrice>
+```
+
+because the combination may already exist or may not exist.
+
+```text
+Record exists
+→ Optional contains FuelPrice
+
+Record does not exist
+→ Optional.empty
+```
+
+---
+
+# 78. Updating Instead of Always Inserting
+
+Originally, every fuel-price POST created:
+
+```java
+new FuelPrice();
+```
+
+This meant every submission created another database row.
+
+The updated service logic first searches for an existing record:
+
+```java
+FuelPrice fuelPrice = fuelPriceRepository
+        .findByStation_IdAndFuelType(
+                stationId,
+                request.getFuelType()
+        )
+        .orElse(new FuelPrice());
+```
+
+This means:
+
+```text
+Search station + fuelType
+          ↓
+Does record exist?
+       /       \
+     YES       NO
+      ↓         ↓
+ use existing  new FuelPrice()
+      \         /
+          ↓
+   set latest price
+   set latest timestamp
+          ↓
+        save()
+```
+
+Then:
+
+```java
+fuelPrice.setPrice(request.getPrice());
+fuelPrice.setFuelType(request.getFuelType());
+fuelPrice.setStation(station);
+fuelPrice.setLastUpdated(LocalDateTime.now());
+```
+
+Finally:
+
+```java
+fuelPriceRepository.save(fuelPrice);
+```
+
+---
+
+# 79. How save() Can INSERT or UPDATE
+
+The same JPA method:
+
+```java
+fuelPriceRepository.save(fuelPrice);
+```
+
+can result in different database operations.
+
+If the entity is new and has no existing ID:
+
+```text
+id = null
+```
+
+Hibernate performs an operation conceptually like:
+
+```sql
+INSERT INTO fuel_prices (...);
+```
+
+If the entity already represents an existing row:
+
+```text
+id = existing database ID
+```
+
+Hibernate updates that record.
+
+Conceptually:
+
+```sql
+UPDATE fuel_prices
+SET price = ...,
+    last_updated = ...
+WHERE id = ...;
+```
+
+So:
+
+```text
+new entity
+→ INSERT
+```
+
+while:
+
+```text
+existing entity
+→ UPDATE
+```
+
+This behavior lets the service use the same `save()` method for both cases.
+
+---
+
+# 80. Testing INSERT vs UPDATE
+
+We manually tested both branches.
+
+## Existing Combination
+
+A station already had a `MIDGRADE` price.
+
+Submitting a new `MIDGRADE` price for that same station:
+
+```text
+same station
++
+same fuel type
+```
+
+updated:
+
+```text
+price
+last_updated
+```
+
+while keeping the same database row.
+
+This proved the application performed an update rather than creating a duplicate.
+
+## New Combination
+
+We also submitted a fuel type that did not already exist for another station.
+
+Because the:
+
+```text
+station + fuelType
+```
+
+combination did not exist, a new row was inserted.
+
+This confirmed both branches:
+
+```text
+existing combination
+→ UPDATE
+```
+
+```text
+new combination
+→ INSERT
+```
+
+---
+
+# 81. Composite Unique Constraint
+
+Application logic tries to ensure that each:
+
+```text
+station + fuelType
+```
+
+combination appears only once.
+
+However, an important data-integrity rule should also be enforced by the database when possible.
+
+We added a composite unique constraint:
+
+```sql
+ALTER TABLE fuel_prices
+ADD CONSTRAINT uq_station_fuel_type
+UNIQUE (station_id, fuel_type);
+```
+
+The constraint is called **composite** because uniqueness depends on multiple columns together.
+
+Neither column needs to be unique individually.
+
+This is valid:
+
+```text
+station_id | fuel_type
+-----------|----------
+1          | REGULAR
+1          | PREMIUM
+2          | REGULAR
+```
+
+But this is not valid:
+
+```text
+1 | REGULAR
+1 | REGULAR
+```
+
+The combination:
+
+```text
+station_id + fuel_type
+```
+
+cannot appear twice.
+
+---
+
+# 82. Application Validation vs Database Constraints
+
+FuelFinder now protects some rules at multiple layers.
+
+## Application Layer
+
+The service checks whether the record exists:
+
+```java
+findByStation_IdAndFuelType(...)
+```
+
+and decides whether to update or insert.
+
+## Database Layer
+
+MySQL enforces:
+
+```text
+UNIQUE(station_id, fuel_type)
+```
+
+Conceptually:
+
+```text
+APPLICATION
+      ↓
+tries to maintain correct data
+
+DATABASE
+      ↓
+guarantees an important integrity rule
+```
+
+This is an important backend principle:
+
+> Important data-integrity rules should not rely only on application behavior when the database can enforce them too.
+
+---
+
+# 83. Input Validation
+
+FuelFinder now validates incoming fuel-price requests before allowing them to reach the service/database.
+
+The project uses:
+
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-validation</artifactId>
+</dependency>
+```
+
+Validation rules are defined in:
+
+```text
+FuelPriceRequest
+```
+
+using Jakarta Validation annotations.
+
+---
+
+# 84. Fuel Price Validation Rules
+
+`FuelPriceRequest` now contains rules similar to:
+
+```java
+@NotNull(message = "Price is required")
+@Positive(message = "Price must be greater than 0")
+private Double price;
+
+@NotNull(message = "Fuel type is required")
+private FuelType fuelType;
+```
+
+## `@NotNull`
+
+Means the value must exist.
+
+This is invalid:
+
+```json
+{
+  "fuelType": "REGULAR"
+}
+```
+
+because `price` is missing.
+
+This is also invalid:
+
+```json
+{
+  "price": 2.79
+}
+```
+
+because `fuelType` is missing.
+
+## `@Positive`
+
+Means the numeric value must be greater than zero.
+
+Invalid:
+
+```json
+{
+  "price": -2.79,
+  "fuelType": "REGULAR"
+}
+```
+
+Invalid:
+
+```json
+{
+  "price": 0,
+  "fuelType": "REGULAR"
+}
+```
+
+Valid:
+
+```json
+{
+  "price": 2.79,
+  "fuelType": "REGULAR"
+}
+```
+
+---
+
+# 85. @Valid
+
+Adding validation annotations to a DTO defines the rules, but Spring must also be told to run those rules.
+
+The POST controller now uses:
+
+```java
+@Valid @RequestBody FuelPriceRequest request
+```
+
+The complete flow is:
+
+```text
+Incoming JSON
+      ↓
+@RequestBody
+      ↓
+FuelPriceRequest
+      ↓
+@Valid
+      ↓
+@NotNull / @Positive
+      ↓
+Is request valid?
+   /        \
+ YES        NO
+  ↓          ↓
+Service    400 error
+  ↓
+Database
+```
+
+An invalid request is rejected **before the service modifies the database**.
+
+---
+
+# 86. Validation Testing
+
+We deliberately tested invalid requests.
+
+## Negative Price
+
+```json
+{
+  "price": -2.95,
+  "fuelType": "REGULAR"
+}
+```
+
+Result:
+
+```text
+400 Bad Request
+```
+
+## Missing Price
+
+```json
+{
+  "fuelType": "REGULAR"
+}
+```
+
+Result:
+
+```text
+400 Bad Request
+```
+
+## Missing Fuel Type
+
+```json
+{
+  "price": 2.95
+}
+```
+
+Result:
+
+```text
+400 Bad Request
+```
+
+The existing database price remained unchanged.
+
+This proved:
+
+```text
+invalid request
+      ↓
+validation fails
+      ↓
+request rejected
+      ↓
+service does not save
+      ↓
+database remains unchanged
+```
+
+---
+
+# 87. Why Validation Helps the Frontend
+
+Validation gives the frontend clear rules about what data the API accepts.
+
+For example, React will eventually be able to submit:
+
+```json
+{
+  "price": -3.00,
+  "fuelType": "REGULAR"
+}
+```
+
+and receive a predictable error instead of allowing invalid information into the database.
+
+The frontend can then display something like:
+
+```text
+Price must be greater than 0
+```
+
+to the user.
+
+Validation therefore protects both:
+
+```text
+DATABASE DATA
+```
+
+and:
+
+```text
+USER EXPERIENCE
+```
+
+---
+
+# 88. API Error Response DTO
+
+FuelFinder now has:
+
+```text
+ApiErrorResponse
+```
+
+to give API errors a consistent JSON format.
+
+It contains:
+
+```text
+status
+error
+message
+timestamp
+```
+
+Example:
+
+```json
+{
+  "status": 400,
+  "error": "Bad Request",
+  "message": "Price must be greater than 0",
+  "timestamp": "2026-08-13T22:05:53.6645949"
+}
+```
+
+This gives the frontend a predictable API contract.
+
+Successful fuel-price responses use:
+
+```text
+FuelPriceResponse
+```
+
+while failed requests can use:
+
+```text
+ApiErrorResponse
+```
+
+---
+
+# 89. Why Consistent Error JSON Matters
+
+Without a consistent response, the frontend might receive different structures depending on which backend error occurs.
+
+With `ApiErrorResponse`, React can eventually do something conceptually like:
+
+```javascript
+if (!response.ok) {
+    const error = await response.json();
+    setError(error.message);
+}
+```
+
+The frontend only needs to care about:
+
+```text
+error.message
+```
+
+It does not need to understand:
+
+```text
+Java exception classes
+Spring internals
+Hibernate exceptions
+stack traces
+```
+
+This creates a cleaner separation between frontend and backend.
+
+---
+
+# 90. Global Exception Handling
+
+Instead of placing error-handling code inside every controller, FuelFinder now has:
+
+```text
+exception/
+└── GlobalExceptionHandler.java
+```
+
+The class uses:
+
+```java
+@RestControllerAdvice
+```
+
+`@RestControllerAdvice` allows exception-handling rules to apply across REST controllers.
+
+Conceptually:
+
+```text
+StationController ───────┐
+                         │
+FuelPriceController ─────┼──→ GlobalExceptionHandler
+                         │
+Future Controllers ──────┘
+```
+
+This centralizes API error handling.
+
+---
+
+# 91. @ExceptionHandler
+
+Inside `GlobalExceptionHandler`, methods use:
+
+```java
+@ExceptionHandler(...)
+```
+
+to specify which Java exception they handle.
+
+Example:
+
+```java
+@ExceptionHandler(MethodArgumentNotValidException.class)
+```
+
+means:
+
+> When this validation exception occurs, use this method to build the HTTP response.
+
+This keeps controllers focused on normal request handling rather than filling them with repeated `try/catch` logic.
+
+---
+
+# 92. Validation Exception Handling
+
+When `@Valid` rejects a request body, Spring produces:
+
+```text
+MethodArgumentNotValidException
+```
+
+The global handler catches it.
+
+Conceptually:
+
+```text
+Invalid FuelPriceRequest
+        ↓
+@Valid fails
+        ↓
+MethodArgumentNotValidException
+        ↓
+GlobalExceptionHandler
+        ↓
+extract validation message
+        ↓
+ApiErrorResponse
+        ↓
+400 Bad Request
+```
+
+The handler extracts a message using the validation errors:
+
+```java
+String message = exception
+        .getBindingResult()
+        .getFieldErrors()
+        .get(0)
+        .getDefaultMessage();
+```
+
+For:
+
+```java
+@Positive(message = "Price must be greater than 0")
+```
+
+the response message becomes:
+
+```text
+Price must be greater than 0
+```
+
+For now, FuelFinder returns the first validation error.
+
+---
+
+# 93. ResponseEntity
+
+The exception handler uses:
+
+```java
+ResponseEntity<ApiErrorResponse>
+```
+
+`ResponseEntity` allows the backend to control both:
+
+```text
+HTTP status
++
+response body
+```
+
+Example:
+
+```java
+return ResponseEntity
+        .status(HttpStatus.BAD_REQUEST)
+        .body(errorResponse);
+```
+
+This produces:
+
+```text
+HTTP Status:
+400 Bad Request
+```
+
+along with:
+
+```json
+{
+  "status": 400,
+  "error": "Bad Request",
+  "message": "...",
+  "timestamp": "..."
+}
+```
+
+---
+
+# 94. Custom StationNotFoundException
+
+Previously, the service used:
+
+```java
+.orElseThrow(() -> new RuntimeException("Station not found"));
+```
+
+That was too generic.
+
+FuelFinder now has a custom exception:
+
+```text
+StationNotFoundException
+```
+
+Example implementation:
+
+```java
+public class StationNotFoundException extends RuntimeException {
+
+    public StationNotFoundException(Long stationId) {
+        super("Station with id " + stationId + " was not found");
+    }
+}
+```
+
+The service now uses:
+
+```java
+Station station = stationRepository.findById(stationId)
+        .orElseThrow(
+            () -> new StationNotFoundException(stationId)
+        );
+```
+
+This gives the error a specific meaning.
+
+---
+
+# 95. Why Create Custom Exceptions?
+
+A generic:
+
+```text
+RuntimeException
+```
+
+does not explain what kind of application error occurred.
+
+A custom:
+
+```text
+StationNotFoundException
+```
+
+does.
+
+That allows the global handler to distinguish:
+
+```text
+Validation problem
+→ 400 Bad Request
+```
+
+from:
+
+```text
+Station does not exist
+→ 404 Not Found
+```
+
+This produces more accurate HTTP behavior.
+
+---
+
+# 96. 400 vs 404
+
+FuelFinder now uses different HTTP status codes for different categories of problems.
+
+## 400 Bad Request
+
+Means:
+
+> The client sent invalid input.
+
+Examples:
+
+```text
+negative price
+missing price
+missing fuel type
+invalid fuel type
+```
+
+## 404 Not Found
+
+Means:
+
+> The requested resource does not exist.
+
+Example:
+
+```text
+POST /api/stations/999/prices
+```
+
+when station `999` does not exist.
+
+A clean response can look like:
+
+```json
+{
+  "status": 404,
+  "error": "Not Found",
+  "message": "Station with id 999 was not found",
+  "timestamp": "..."
+}
+```
+
+---
+
+# 97. Station Not Found Flow
+
+The flow is now:
+
+```text
+POST /api/stations/999/prices
+        ↓
+FuelPriceController
+        ↓
+FuelPriceService
+        ↓
+stationRepository.findById(999)
+        ↓
+Optional.empty
+        ↓
+StationNotFoundException
+        ↓
+GlobalExceptionHandler
+        ↓
+ApiErrorResponse
+        ↓
+404 Not Found
+```
+
+This is much better than exposing a generic backend exception.
+
+---
+
+# 98. Invalid Enum Input
+
+`FuelType` is an enum:
+
+```java
+REGULAR
+MIDGRADE
+PREMIUM
+DIESEL
+```
+
+A request such as:
+
+```json
+{
+  "price": 2.95,
+  "fuelType": "PIZZA"
+}
+```
+
+has a different problem from:
+
+```json
+{
+  "price": -2.95,
+  "fuelType": "REGULAR"
+}
+```
+
+The negative price successfully converts into a `FuelPriceRequest`, and then validation fails.
+
+But `"PIZZA"` cannot be converted into:
+
+```java
+FuelType
+```
+
+at all.
+
+Conceptually:
+
+```text
+Negative price:
+
+JSON
+ ↓
+FuelPriceRequest created
+ ↓
+@Valid
+ ↓
+fails
+
+
+Invalid enum:
+
+JSON
+ ↓
+Jackson attempts conversion
+ ↓
+"PIZZA" → FuelType
+ ↓
+conversion fails
+ ↓
+FuelPriceRequest cannot be fully created
+```
+
+---
+
+# 99. HttpMessageNotReadableException
+
+When Jackson cannot convert the request body into the required Java types, Spring can produce:
+
+```text
+HttpMessageNotReadableException
+```
+
+The global handler now contains a handler for this error.
+
+Example response:
+
+```json
+{
+  "status": 400,
+  "error": "Bad Request",
+  "message": "Invalid request body. Check that the fuel type is valid.",
+  "timestamp": "..."
+}
+```
+
+This gives the frontend a clean error instead of exposing Jackson/Spring internals.
+
+---
+
+# 100. Current Error Handling Mental Model
+
+FuelFinder now distinguishes several failure paths:
+
+```text
+REQUEST
+   ↓
+Can JSON be converted?
+   │
+   ├── NO
+   │    ↓
+   │ HttpMessageNotReadableException
+   │    ↓
+   │ 400 Bad Request
+   │
+   └── YES
+        ↓
+      @Valid
+        ↓
+Are DTO fields valid?
+   │
+   ├── NO
+   │    ↓
+   │ MethodArgumentNotValidException
+   │    ↓
+   │ 400 Bad Request
+   │
+   └── YES
+        ↓
+      Service
+        ↓
+Does station exist?
+   │
+   ├── NO
+   │    ↓
+   │ StationNotFoundException
+   │    ↓
+   │ 404 Not Found
+   │
+   └── YES
+        ↓
+      Business logic
+        ↓
+      Database
+```
+
+---
+
+# 101. Why Global Error Handling Helps React
+
+When the frontend is built, React will need to respond differently depending on what happened.
+
+For example:
+
+```text
+400
+→ show user that their form input is invalid
+
+404
+→ explain that a requested station could not be found
+
+200
+→ display successful result
+```
+
+Because the backend returns predictable JSON:
+
+```json
+{
+  "status": 400,
+  "error": "Bad Request",
+  "message": "Price must be greater than 0",
+  "timestamp": "..."
+}
+```
+
+React will be able to easily display:
+
+```text
+Price must be greater than 0
+```
+
+This is an example of designing the backend API to make frontend development easier.
+
+---
+
+# 102. New Important Spring / Jakarta Annotations
+
+## `@Valid`
+
+Runs validation rules defined on an incoming object.
+
+Example:
+
+```java
+@Valid @RequestBody FuelPriceRequest request
+```
+
+---
+
+## `@NotNull`
+
+Requires a field to contain a value.
+
+Example:
+
+```java
+@NotNull(message = "Price is required")
+```
+
+---
+
+## `@Positive`
+
+Requires a numeric value to be greater than zero.
+
+Example:
+
+```java
+@Positive(message = "Price must be greater than 0")
+```
+
+---
+
+## `@RestControllerAdvice`
+
+Defines centralized exception-handling behavior for REST controllers.
+
+---
+
+## `@ExceptionHandler`
+
+Specifies which exception a handler method responds to.
+
+Example:
+
+```java
+@ExceptionHandler(StationNotFoundException.class)
+```
+
+---
+
+# 103. New Interview Concepts to Know
+
+I should be able to explain:
+
+## Validation
+
+* What is input validation?
+* Why should the backend validate data even if the frontend also validates it?
+* What does `@Valid` do?
+* What does `@NotNull` do?
+* What does `@Positive` do?
+* At what point does validation happen?
+* Does invalid input reach the service/database?
+
+## Error Handling
+
+* What is exception handling?
+* Why create custom exceptions?
+* What is `@RestControllerAdvice`?
+* What is `@ExceptionHandler`?
+* Why centralize error handling?
+* What is `ResponseEntity`?
+* What is the difference between a `400` and a `404`?
+* Why shouldn't stack traces or internal exception objects be exposed to the frontend?
+
+## Data Integrity
+
+* What is a unique constraint?
+* What is a composite unique constraint?
+* Why is `(station_id, fuel_type)` unique?
+* Why enforce rules in the database if application logic already checks them?
+
+## JPA
+
+* How does `save()` know whether to insert or update?
+* What happens when an entity already has an existing database identity?
+* Why does `findByStation_IdAndFuelType()` return `Optional<FuelPrice>`?
+
+---
+
+# 104. Updated Current Project Status
+
+## Completed
+
+### Environment / Setup
+
+* Java 21
+* Spring Boot
+* Maven Wrapper
+* MySQL
+* MySQL Workbench
+* Spring Boot → MySQL connection
+* Environment-variable database credentials
+* Git / GitHub project tracking
+
+### Architecture
+
+* Controller layer
+* Service layer
+* Repository layer
+* JPA / Hibernate layer
+* MySQL persistence
+* Dependency Injection
+* DTO-based fuel-price API
+
+### Station Features
+
+* `Station` entity
+* `StationRepository`
+* `StationService`
+* `StationController`
+* `GET /api/stations`
+* `POST /api/stations`
+* ZIP-code filtering
+* `GET /api/stations?zipCode=...`
+
+### Fuel Price Features
+
+* `FuelType` enum
+* `FuelPrice` entity
+* Station → FuelPrice relationship
+* Foreign key
+* Fuel-price timestamps
+* `FuelPriceRequest`
+* `FuelPriceResponse`
+* `GET /api/fuel-prices`
+* `GET /api/fuel-prices?fuelType=...`
+* `GET /api/stations/{stationId}/prices`
+* `POST /api/stations/{stationId}/prices`
+* Cheapest-price search
+* ZIP + fuel-type cheapest search
+* Tie handling
+* Custom JPQL
+* `MIN()`
+* Entity-to-DTO mapping
+* Java Stream mapping
+
+### Latest-Price Logic
+
+* Latest-price-only MVP decision
+* Lookup by station + fuel type
+* Existing price UPDATE behavior
+* New combination INSERT behavior
+* `findByStation_IdAndFuelType()`
+* Composite unique `(station_id, fuel_type)` constraint
+* Manual testing of both UPDATE and INSERT paths
+
+### Validation
+
+* Spring Boot validation dependency
+* `@Valid`
+* `@NotNull`
+* `@Positive`
+* Price-required validation
+* Positive-price validation
+* Fuel-type-required validation
+* Manual `400 Bad Request` testing
+* Verified invalid data does not modify database data
+
+### Error Handling
+
+* `ApiErrorResponse`
+* `GlobalExceptionHandler`
+* `@RestControllerAdvice`
+* `@ExceptionHandler`
+* Validation exception handling
+* Clean `400 Bad Request` JSON
+* `StationNotFoundException`
+* Clean `404 Not Found` handling
+* Invalid request-body / enum exception handling
+* `ResponseEntity`
+* Consistent API error structure
+
+---
+
+# 105. Where I Stopped
+
+The backend is now at a strong pre-frontend checkpoint.
+
+The last area worked on was:
+
+```text
+validation
++
+global exception handling
+```
+
+The invalid enum/request-body handler has been implemented.
+
+At the next session, first manually confirm the invalid enum test if it has not already been tested:
+
+```json
+{
+  "price": 2.95,
+  "fuelType": "PIZZA"
+}
+```
+
+Expected:
+
+```text
+400 Bad Request
+```
+
+with a clean `ApiErrorResponse`.
+
+---
+
+# 106. Next Steps Before Frontend
+
+The goal is to stop immediately before React.
+
+## First
+
+1. Confirm invalid-enum error handling.
+2. Consider basic validation for `Station` input.
+3. Consider ZIP-code format validation.
+4. Review any remaining generic exceptions.
+5. Make sure API error responses are consistent.
+
+## Automated Testing
+
+6. Add JUnit tests.
+7. Learn Mockito.
+8. Test `FuelPriceService`.
+9. Test creation of a new fuel price.
+10. Test updating an existing fuel price.
+11. Test invalid station IDs.
+12. Test fuel-price filtering.
+13. Test ZIP filtering.
+14. Test cheapest-price behavior.
+15. Test tied cheapest prices.
+16. Test validation failures.
+17. Add controller/API tests.
+
+## Final Backend Cleanup
+
+18. Remove unused imports.
+19. Review comments.
+20. Review package structure.
+21. Confirm database constraints.
+22. Confirm no secrets are tracked by Git.
+23. Review all API endpoints.
+24. Update README/documentation.
+25. Commit and push the completed backend checkpoint.
+
+Then stop.
+
+The next untouched phase will be:
+
+```text
+REACT FRONTEND
+```
+
+---
+
+# 107. Backend MVP Finish Line
+
+The backend will be considered ready to pause once it has:
+
+```text
+Spring Boot REST API
+        ↓
+Controller
+        ↓
+Request DTOs
+        ↓
+Validation
+        ↓
+Service
+        ↓
+Business logic
+        ↓
+Repository
+        ↓
+JPA / Hibernate
+        ↓
+MySQL
+
+PLUS
+
+Response DTOs
+Custom JPQL
+Latest-price rules
+Database constraints
+Global error handling
+Correct HTTP status codes
+Automated tests
+Documentation
+```
+
+At that point, FuelFinder will demonstrate much more than simple CRUD.
+
+It will demonstrate:
+
+```text
+API design
+layered architecture
+business rules
+data integrity
+validation
+exception handling
+HTTP semantics
+database relationships
+custom querying
+DTO architecture
+testing
+```
+
+That is the point where the backend can be considered a strong learning/interview-ready MVP before beginning React.
+
+---
+
+# 108. Updated Full POST Mental Model
+
+A successful fuel-price submission now follows:
+
+```text
+CLIENT
+PowerShell / future React
+        ↓
+HTTP POST + JSON
+        ↓
+CONTROLLER
+        ↓
+Jackson converts JSON
+        ↓
+FuelPriceRequest
+        ↓
+@Valid
+        ↓
+Validation passes
+        ↓
+SERVICE
+        ↓
+Find Station
+        ↓
+Find existing
+station + fuelType
+        ↓
+Exists?
+   /         \
+ YES         NO
+  ↓           ↓
+update       create
+existing     FuelPrice
+  \           /
+       ↓
+set latest price
+set lastUpdated
+       ↓
+REPOSITORY.save()
+       ↓
+Hibernate
+       ↓
+UPDATE or INSERT
+       ↓
+MySQL
+       ↓
+FuelPrice entity
+       ↓
+toResponse()
+       ↓
+FuelPriceResponse
+       ↓
+Jackson
+       ↓
+JSON
+       ↓
+CLIENT
+```
+
+A failed submission can branch earlier:
+
+```text
+Bad JSON / invalid enum
+        ↓
+400
+
+Invalid DTO fields
+        ↓
+400
+
+Station missing
+        ↓
+404
+```
+
+This is the most complete FuelFinder backend mental model so far.
