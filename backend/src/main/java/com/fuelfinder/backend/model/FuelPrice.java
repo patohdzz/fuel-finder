@@ -17,7 +17,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "fuel_prices") // new table, from stations pov its a one to many relationship/from fuel_prices its a many to one
-public class FuelPrice {
+public class FuelPrice { // how the BACKEND / DATABASE models the data
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

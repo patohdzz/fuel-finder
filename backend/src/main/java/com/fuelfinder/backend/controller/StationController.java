@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 import java.util.List;
 
+import org.springframework.web.bind.annotation.RequestParam;
+
 @RestController // means this class handles API requests
 public class StationController {
 
@@ -22,7 +24,10 @@ public class StationController {
 
     // which gets every station
     @GetMapping("/api/stations")
-    public List<Station> getAllStations() {
+    public List<Station> getStations(@RequestParam(required = false) String zipCode) {
+        if (zipCode != null) {
+            return stationService.getStationsByZipCode(zipCode);
+        }
         return stationService.getAllStations();
     }
 
@@ -31,6 +36,8 @@ public class StationController {
     public Station createStation(@RequestBody Station station) {
         return stationService.createStation(station);
     }
+
+
 }
 
 // When the browser sends:

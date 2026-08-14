@@ -2,13 +2,53 @@ package com.fuelfinder.backend.repository;
 
 import com.fuelfinder.backend.model.FuelPrice;
 import javax.swing.Spring;
+
+import org.hibernate.annotations.processing.Find;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
 
+import com.fuelfinder.backend.model.FuelType;
+
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
 public interface FuelPriceRepository extends JpaRepository<FuelPrice, Long> {
     List<FuelPrice> findByStation_Id(Long stationId);
+
+    // conceptually: fuelPriceRepository.findByFuelType(FuelType.REGULAR);
+    List<FuelPrice> findByFuelType(FuelType fuelType);
+
+    // we're going to write our first custom JPA query.
+    @Query("""
+    SELECT fp FROM FuelPrice fp
+    WHERE fp.fuelType = :fuelType
+    AND fp.price = (
+        SELECT MIN(fp2.price)
+        FROM FuelPrice fp2
+        WHERE fp2.fuelType = :fuelType
+    )
+    """)
+    List<FuelPrice> findCheapestByFuelType(@Param("fuelType") FuelType fuelType);
+    // Find the minimum price, then return every row whose price equals that minimum.
+
+    // FuelPrice → Station → ZIP code
+    @Query("""
+    SELECT fp FROM FuelPrice fp
+    WHERE fp.fuelType = :fuelType
+    AND fp.station.zipCode = :zipCode
+    AND fp.price = (
+        SELECT MIN(fp2.price)
+        FROM FuelPrice fp2
+        WHERE fp2.fuelType = :fuelType
+        AND fp2.station.zipCode = :zipCode
+    )
+    """)
+    List<FuelPrice> findCheapestByFuelTypeAndZipCode(@Param("fuelType") FuelType fuelType, @Param("zipCode") String zipCode);
+    
 }    
+
+
 
 // Conceptually, Spring does this:
 

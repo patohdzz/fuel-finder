@@ -38,5 +38,8 @@ public class StationService {
         // Calculating savings
         // Validating user input
 
+    public List<Station> getStationsByZipCode(String zipCode) {
+        return stationRepository.findByZipCode(zipCode);
+    }  
 
 }

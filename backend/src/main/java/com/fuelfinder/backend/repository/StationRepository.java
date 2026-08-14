@@ -6,10 +6,11 @@ import javax.swing.Spring;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
+
 
 // talks to the database/MySQL
 public interface StationRepository extends JpaRepository<Station, Long> { // Station is the entity being managed, Long is the type of the Station ID
-
     // That gives access to methods such as:
         // findAll();
         // findById();
@@ -21,6 +22,9 @@ public interface StationRepository extends JpaRepository<Station, Long> { // Sta
     // Spring eventually generates SQL similar to:
         // SELECT *
         // FROM stations;
+    
+
+    List<Station> findByZipCode(String zipCode);
     
 }
 

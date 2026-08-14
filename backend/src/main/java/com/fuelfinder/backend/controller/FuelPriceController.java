@@ -1,6 +1,6 @@
 package com.fuelfinder.backend.controller;
 
-import com.fuelfinder.backend.model.FuelPrice;
+// import com.fuelfinder.backend.model.FuelPrice; NO MORE USE
 import com.fuelfinder.backend.service.FuelPriceService;
 
 import org.springframework.web.bind.annotation.GetMapping;
@@ -10,6 +10,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+
+import com.fuelfinder.backend.model.FuelType;
+import org.springframework.web.bind.annotation.RequestParam;
+
+import com.fuelfinder.backend.dto.FuelPriceRequest;
+import com.fuelfinder.backend.dto.FuelPriceResponse;
 
 @RestController // handles API requests
 public class FuelPriceController {
@@ -21,23 +27,31 @@ public class FuelPriceController {
     }
 
     @GetMapping("/api/fuel-prices")
-    public List<FuelPrice> getAllFuelPrices() {
+    public List<FuelPriceResponse> getFuelPrices(@RequestParam(required = false) FuelType fuelType) {
+        // if they gave us a fuelType to look for, return the helper method, else return all of them
+        if (fuelType != null) {
+            return fuelPriceService.getFuelPricesByFuelType(fuelType);
+        }
+
         return fuelPriceService.getAllFuelPrices();
     }
 
     @PostMapping("/api/stations/{stationId}/prices")
-    public FuelPrice createFuelPrice(
-            @PathVariable Long stationId,
-            @RequestBody FuelPrice fuelPrice) {
-
-        return fuelPriceService.createFuelPrice(stationId, fuelPrice);
+    public FuelPriceResponse createFuelPrice(@PathVariable Long stationId, @RequestBody FuelPriceRequest request) {
+        return fuelPriceService.createFuelPrice(stationId, request);
     }
 
     @GetMapping("/api/stations/{stationId}/prices")
-    public List<FuelPrice> getFuelPricesByStation(
-            @PathVariable Long stationId) {
-
+    public List<FuelPriceResponse> getFuelPricesByStation(@PathVariable Long stationId) {
         return fuelPriceService.getFuelPricesByStation(stationId);
+    }
+
+    @GetMapping("/api/fuel-prices/cheapest")
+    public List<FuelPriceResponse> getCheapestFuelPrices(@RequestParam FuelType fuelType, @RequestParam(required = false) String zipCode) {
+        if (zipCode != null) {
+            return fuelPriceService.getCheapestFuelPricesByFuelTypeAndZipCode(fuelType, zipCode);
+        }
+        return fuelPriceService.getCheapestFuelPricesByFuelType(fuelType);
     }
 }
 
