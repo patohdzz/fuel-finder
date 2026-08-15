@@ -29,8 +29,12 @@ public class FuelPriceController {
     }
 
     @GetMapping("/api/fuel-prices")
-    public List<FuelPriceResponse> getFuelPrices(@RequestParam(required = false) FuelType fuelType) {
-        // if they gave us a fuelType to look for, return the helper method, else return all of them
+    public List<FuelPriceResponse> getFuelPrices(@RequestParam(required = false) FuelType fuelType, @RequestParam(required = false) String zipCode) {
+
+        if (fuelType != null && zipCode != null) {
+            return fuelPriceService.getFuelPricesByFuelTypeAndZipCode(fuelType, zipCode);
+        }
+
         if (fuelType != null) {
             return fuelPriceService.getFuelPricesByFuelType(fuelType);
         }

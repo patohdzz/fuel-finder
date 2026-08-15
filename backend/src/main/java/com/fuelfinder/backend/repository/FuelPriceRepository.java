@@ -14,7 +14,7 @@ import com.fuelfinder.backend.model.FuelType;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-public interface FuelPriceRepository extends JpaRepository<FuelPrice, Long> {
+public interface FuelPriceRepository extends JpaRepository<FuelPrice, Long> { // talks to the database/MySQL
     List<FuelPrice> findByStation_Id(Long stationId);
 
     // conceptually: fuelPriceRepository.findByFuelType(FuelType.REGULAR);
@@ -48,6 +48,11 @@ public interface FuelPriceRepository extends JpaRepository<FuelPrice, Long> {
     List<FuelPrice> findCheapestByFuelTypeAndZipCode(@Param("fuelType") FuelType fuelType, @Param("zipCode") String zipCode);
 
     Optional<FuelPrice> findByStation_IdAndFuelType(Long stationId, FuelType fuelType);
+
+    List<FuelPrice> findByFuelTypeAndStation_ZipCodeOrderByPriceAsc(FuelType fuelType, String zipCode);
+            
+            
+    
     
 }    
 

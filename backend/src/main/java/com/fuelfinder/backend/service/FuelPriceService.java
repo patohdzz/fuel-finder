@@ -89,6 +89,18 @@ public class FuelPriceService {
         return fuelPriceRepository.findCheapestByFuelTypeAndZipCode(fuelType, zipCode).stream().map(this::toResponse).toList();
     }
 
+    public List<FuelPriceResponse> getFuelPricesByFuelTypeAndZipCode(FuelType fuelType, String zipCode) {
+
+        return fuelPriceRepository.findByFuelTypeAndStation_ZipCodeOrderByPriceAsc(fuelType, zipCode).stream().map(this::toResponse).toList();
+    }
+
+              
+
+
+
+
+
+
     // We aren't making this a public service operation that the controller calls directly.
     // It's just a helper method used internally by FuelPriceService.
     private FuelPriceResponse toResponse(FuelPrice fuelPrice) {

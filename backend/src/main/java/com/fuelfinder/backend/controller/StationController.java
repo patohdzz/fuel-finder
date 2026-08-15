@@ -1,21 +1,19 @@
 package com.fuelfinder.backend.controller;
 
-import com.fuelfinder.backend.model.Station;
+import com.fuelfinder.backend.dto.StationRequest;
+import com.fuelfinder.backend.dto.StationResponse;
 import com.fuelfinder.backend.service.StationService;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
 
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
+import jakarta.validation.Valid;
+
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-import org.springframework.web.bind.annotation.RequestParam;
-
-@RestController // means this class handles API requests
+@RestController  // means this class handles API requests
 public class StationController {
 
-    private final StationService stationService; // means the controller needs the service layer
+    private final StationService stationService;  // means the controller needs the service layer
 
     // dependency injection again, spring is giving the controller a stationService
     public StationController(StationService stationService) {
@@ -24,21 +22,23 @@ public class StationController {
 
     // which gets every station
     @GetMapping("/api/stations")
-    public List<Station> getStations(@RequestParam(required = false) String zipCode) {
+    public List<StationResponse> getStations(@RequestParam(required = false) String zipCode) {
+
         if (zipCode != null) {
             return stationService.getStationsByZipCode(zipCode);
         }
+
         return stationService.getAllStations();
     }
 
     // which creates a station
     @PostMapping("/api/stations")
-    public Station createStation(@RequestBody Station station) {
-        return stationService.createStation(station);
+    public StationResponse createStation(@Valid @RequestBody StationRequest request) {
+
+        return stationService.createStation(request);
     }
-
-
 }
+
 
 // When the browser sends:
 
