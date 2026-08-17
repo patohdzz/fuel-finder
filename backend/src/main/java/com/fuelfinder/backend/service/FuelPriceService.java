@@ -41,7 +41,7 @@ public class FuelPriceService {
         // If the station doesn't exist, stop and throw an error instead of trying to create a price for a nonexistent station. 
         // That protects our foreign-key relationship.
 
-        // look for if one exists already, if so update it, if not create a new one
+        // look for if a price exists already, if so update it, if not create a new one
         FuelPrice fuelPrice = fuelPriceRepository.findByStation_IdAndFuelType(stationId, request.getFuelType()).orElse(new FuelPrice());
         // We're creating the actual database entity ourselves.
         // Then we copy only the fields the client is allowed to control:
@@ -51,7 +51,7 @@ public class FuelPriceService {
         fuelPrice.setLastUpdated(LocalDateTime.now());
 
         // results in either and update or an insert
-        FuelPrice savedFuelPrice = fuelPriceRepository.save(fuelPrice);
+        FuelPrice savedFuelPrice = fuelPriceRepository.save(fuelPrice); // causes Hibernate/JPA to update the row in MySQL.
 
         return toResponse(savedFuelPrice);
     }
@@ -93,13 +93,6 @@ public class FuelPriceService {
 
         return fuelPriceRepository.findByFuelTypeAndStation_ZipCodeOrderByPriceAsc(fuelType, zipCode).stream().map(this::toResponse).toList();
     }
-
-              
-
-
-
-
-
 
     // We aren't making this a public service operation that the controller calls directly.
     // It's just a helper method used internally by FuelPriceService.

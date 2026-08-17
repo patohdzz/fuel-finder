@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import './App.css'
+import SearchForm from './components/SearchForm'
+import SearchResults from './components/SearchResults'
 
 function App() {
   // zipCode is the current value, setZipCode is the function used to change that value
@@ -7,70 +9,116 @@ function App() {
   const [zipCode, setZipCode] = useState('')
   // same thing happens here, its initially set to regular
   const [fuelType, setFuelType] = useState('REGULAR')
+  const [results, setResults] = useState([])            // What did Spring Boot return?
+  const [loading, setLoading] = useState(false)         // Is the API request still running?
+  const [error, setError] = useState('')                // Did something go wrong?
+  const [hasSearched, setHasSearched] = useState(false) // Has the user actually searched yet?
 
-  // function handleSubmit(event) {
-  //   // when user presses seach, the form calls handleSubmit
-  //   event.preventDefault()
+  async function searchFuelPrices() {
+    // Deals with searching the backend
+    const url = `http://localhost:8080/api/fuel-prices?fuelType=${fuelType}&zipCode=${zipCode}`
 
-  //   console.log('ZIP Code:', zipCode)
-  //   console.log('Fuel Type:', fuelType)
-  // }
-  async function handleSubmit(event) {
-    event.preventDefault()
-
-    const url =
-      `http://localhost:8080/api/fuel-prices?fuelType=${fuelType}&zipCode=${zipCode}`
+    setLoading(true)
+    setError('')
+    setHasSearched(true)
 
     try {
-      // browser making an HTTP request to your Spring Boot server
       const response = await fetch(url)
 
-      // takes the HTTP response body and parses the JSON into JavaScript data that React can work with.
-      const data = await response.json()
+      if (!response.ok) {
+        throw new Error('Request failed')
+      }
 
-      console.log(data)
+      const data = await response.json()
+      setResults(data)
+      // setState(...)
+      //     ↓
+      // state changes
+      //     ↓
+      // React re-renders
+      //     ↓
+      // UI changes
     } catch (error) {
       console.error('Error fetching fuel prices:', error)
+
+      setResults([])
+      setError('Unable to load fuel prices. Please try again.')
+    } finally {
+      setLoading(false)
     }
   }
 
+  // Now other functions can also call searchFuelPrices
+  function handleSubmit(event) {
+    // Deals with the form
+    event.preventDefault()
+
+    searchFuelPrices()
+  }
+
+  // The browser will send JSON like:
+  // {
+  //   "price": 2.75,
+  //   "fuelType": "REGULAR"
+  // }
+  // to: POST /api/stations/1/prices
+  async function handlePriceUpdate(stationId, fuelType, newPrice) {
+    const url = `http://localhost:8080/api/stations/${stationId}/prices`
+
+    const response = await fetch(url, { // Don't continue until the update request has finished.
+      method: 'POST',
+
+      headers: {
+        'Content-Type': 'application/json'
+      },
+
+      body: JSON.stringify({ // converts it into JSON suitable for the HTTP request body.
+        price: newPrice,
+        fuelType: fuelType
+      })
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Unable to update fuel price.')
+    }
+
+    // this tells React to run the search again
+    await searchFuelPrices()
+
+    return data
+  }
+
   return (
-    <div className="app">
-      <h1>FuelFinder</h1>
+    <main className="app">
+      {/* search area */}
+      <section className="hero"> 
+        <h1>FuelFinder</h1>
 
-      <p>Find the cheapest fuel prices near you.</p>
+        <p>
+          Find the cheapest fuel prices near you.
+        </p>
 
-      <form onSubmit={handleSubmit}> 
-        <div>
-          <label htmlFor="zipCode">ZIP Code</label>
+        <SearchForm
+          zipCode={zipCode}
+          setZipCode={setZipCode}
+          fuelType={fuelType}
+          setFuelType={setFuelType}
+          handleSubmit={handleSubmit}
+          loading={loading}
+        />
+      </section>
 
-          <input
-            id="zipCode"
-            type="text"
-            value={zipCode}
-            onChange={(event) => setZipCode(event.target.value)} // Whenever the user changes this input, take its new value and store it in zipCode.
-            placeholder="76010"
-          />
-        </div>
-
-        <div>
-          <label htmlFor="fuelType">Fuel Type</label>
-
-          <select
-            id="fuelType"
-            value={fuelType}
-            onChange={(event) => setFuelType(event.target.value)}
-          >
-            <option value="REGULAR">Regular</option>
-            <option value="MIDGRADE">Midgrade</option>
-            <option value="PREMIUM">Premium</option>
-            <option value="DIESEL">Diesel</option>
-          </select>
-        </div>
-
-        <button type="submit">Search</button>
-      </form>
-    </div>
+      {/* search results */}
+      <SearchResults
+        results={results}
+        loading={loading}
+        error={error}
+        hasSearched={hasSearched}
+        onUpdatePrice={handlePriceUpdate}
+      />
+    </main>
   )
 }
 
