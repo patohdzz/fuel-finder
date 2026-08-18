@@ -6,11 +6,19 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 
 
 @Entity // Tells JPA that this Java class represents database data.
-@Table(name = "stations") // Connects the class to the stations table.
-
+@Table(
+    name = "stations",
+    uniqueConstraints = {
+        @UniqueConstraint(
+            name = "uk_station_osm",
+            columnNames = {"osm_type", "osm_id"}
+        )
+    }
+)
 public class Station { 
     // this class represents a station inside the application
     // it also maps to the stations table
@@ -29,6 +37,12 @@ public class Station {
 
     private Double latitude;
     private Double longitude;
+
+    @Column(name = "osm_type")
+    private String osmType;
+
+    @Column(name = "osm_id")
+    private Long osmId;
 
     public Station() {
     }
@@ -101,5 +115,21 @@ public class Station {
 
     public void setZipCode(String zipCode) {
         this.zipCode = zipCode;
+    }
+
+    public String getOsmType() {
+        return osmType;
+    }
+
+    public void setOsmType(String osmType) {
+        this.osmType = osmType;
+    }
+
+    public Long getOsmId() {
+        return osmId;
+    }
+
+    public void setOsmId(Long osmId) {
+        this.osmId = osmId;
     }
 }

@@ -9,6 +9,10 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+import com.fuelfinder.backend.dto.StationSearchResponse;
+import com.fuelfinder.backend.model.FuelType;
+
+
 @Service   // this class will contain business logic
 public class StationService {
 
@@ -60,5 +64,10 @@ public class StationService {
                 station.getLatitude(),
                 station.getLongitude()
         );
+    }
+
+    public List<StationSearchResponse> searchStations(String zipCode, FuelType fuelType) {
+
+        return stationRepository.searchStationsByZipCodeAndFuelType(zipCode, fuelType);
     }
 }

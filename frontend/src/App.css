@@ -309,6 +309,12 @@
   color: #166534;
 }
 
+.no-price {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #6b7280;
+}
+
 /* Mobile */
 
 @media (max-width: 650px) {

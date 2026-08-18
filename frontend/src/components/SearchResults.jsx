@@ -30,12 +30,18 @@ function SearchResults({
   if (results.length === 0) {
     return (
       <div className="status-message">
-        No fuel prices found for this search.
+        No gas stations found for this search.
       </div>
     )
   }
+  // const cheapestPrice = results[0].price
+  const firstPricedStation = results.find(
+    (result) => result.price !== null
+  )
 
-  const cheapestPrice = results[0].price
+  const cheapestPrice = firstPricedStation
+    ? firstPricedStation.price
+    : null
 
   return (
     <section className="results-section">
@@ -52,7 +58,10 @@ function SearchResults({
           <StationCard
             key={result.stationId}
             result={result}
-            isCheapest={result.price === cheapestPrice}
+            isCheapest={
+              cheapestPrice !== null &&
+              result.price === cheapestPrice
+            }
             onUpdatePrice={onUpdatePrice}
           />
         ))}

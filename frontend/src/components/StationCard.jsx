@@ -101,9 +101,12 @@ function StationCard({
           <h3>{result.stationName}</h3>
         </div>
 
-        <div className="price">
-          ${result.price.toFixed(2)}
+        <div className={result.price === null ? 'no-price' : 'price'}>
+          {result.price === null ? 'No price reported' : `$${result.price.toFixed(2)}`}
         </div>
+        {/* <div className="price">
+          ${result.price.toFixed(2)}
+        </div> */}
       </div>
 
       <p className="fuel-type">
@@ -115,10 +118,15 @@ function StationCard({
         <br />
         {result.city}, {result.state} {result.zipCode}
       </p>
-
-      <p className="last-updated">
+      
+      {result.lastUpdated && (
+        <p className="last-updated">
+          {formatTimeAgo(result.lastUpdated)}
+        </p>
+      )}
+      {/* <p className="last-updated">
         {formatTimeAgo(result.lastUpdated)}
-      </p>
+      </p> */}
 
       <button
         className="update-price-button"
@@ -128,7 +136,7 @@ function StationCard({
           setUpdateMessage('')
         }}
       >
-        {showUpdateForm ? 'Cancel' : 'Update Price'}
+        {showUpdateForm ? 'Cancel' : result.price === null ? 'Report Price' : 'Update Price'}
       </button>
 
       {showUpdateForm && (
@@ -148,7 +156,7 @@ function StationCard({
             max="10"
             value={newPrice}
             onChange={(event) => setNewPrice(event.target.value)}
-            placeholder={result.price.toFixed(2)}
+            placeholder={result.price === null ? 'Enter price' : result.price.toFixed(2)}
           />
 
           <button type="submit" disabled={updating}>

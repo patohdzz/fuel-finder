@@ -19,7 +19,7 @@ function App() {
 
   async function searchFuelPrices() {
     // Deals with searching the backend
-    const url = `${API_URL}/api/fuel-prices?fuelType=${fuelType}&zipCode=${zipCode}`
+    const url = `${API_URL}/api/stations/search?zipCode=${zipCode}&fuelType=${fuelType}`
 
     setLoading(true)
     setError('')

@@ -10,6 +10,10 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+import com.fuelfinder.backend.dto.StationSearchResponse;
+import com.fuelfinder.backend.model.FuelType;
+
+
 @RestController  // means this class handles API requests
 public class StationController {
 
@@ -36,6 +40,14 @@ public class StationController {
     public StationResponse createStation(@Valid @RequestBody StationRequest request) {
 
         return stationService.createStation(request);
+    }
+
+    @GetMapping("/api/stations/search")
+    public List<StationSearchResponse> searchStations(
+            @RequestParam String zipCode,
+            @RequestParam FuelType fuelType) {
+
+        return stationService.searchStations(zipCode, fuelType);
     }
 }
 

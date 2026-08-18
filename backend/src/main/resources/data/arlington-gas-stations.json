@@ -1,0 +1,268 @@
+{
+  "version": 0.6,
+  "generator": "Overpass API 0.7.62.11 87bfad18",
+  "osm3s": {
+    "timestamp_osm_base": "2026-08-18T22:42:06Z",
+    "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
+  },
+  "elements": [
+    {
+      "type": "node",
+      "id": 3149717693,
+      "lat": 32.7240884,
+      "lon": -97.1150767,
+      "tags": {
+        "amenity": "fuel",
+        "brand": "Texaco",
+        "fuel:diesel": "yes",
+        "fuel:octane_100": "yes",
+        "fuel:octane_95": "yes",
+        "fuel:octane_98": "yes",
+        "name": "Snap-N-Go",
+        "opening_hours": "24/7",
+        "operator": "Texaco"
+      }
+    },
+    {
+      "type": "node",
+      "id": 9644449717,
+      "lat": 32.707702,
+      "lon": -97.098001,
+      "tags": {
+        "amenity": "fuel",
+        "brand": "Chevron",
+        "brand:wikidata": "Q319642",
+        "name": "Chevron"
+      }
+    },
+    {
+      "type": "node",
+      "id": 11911244169,
+      "lat": 32.7080899,
+      "lon": -97.1169049,
+      "tags": {
+        "addr:housenumber": "900",
+        "addr:postcode": "76013",
+        "addr:street": "West Pioneer Parkway",
+        "amenity": "fuel",
+        "brand": "Murphy USA",
+        "brand:wikidata": "Q19604459",
+        "name": "Murphy USA",
+        "opening_hours": "Mo-Su 04:30-12:30"
+      }
+    },
+    {
+      "type": "node",
+      "id": 13555967149,
+      "lat": 32.7351012,
+      "lon": -97.0969588,
+      "tags": {
+        "amenity": "fuel"
+      }
+    },
+    {
+      "type": "node",
+      "id": 13556011877,
+      "lat": 32.741935,
+      "lon": -97.0841686,
+      "tags": {
+        "amenity": "fuel"
+      }
+    },
+    {
+      "type": "way",
+      "id": 131148304,
+      "center": {
+        "lat": 32.7216125,
+        "lon": -97.1503487
+      },
+      "tags": {
+        "addr:housenumber": "2611",
+        "addr:postcode": "76013",
+        "addr:street": "West Park Row",
+        "amenity": "fuel",
+        "brand": "Tom Thumb",
+        "brand:wikidata": "Q7817826",
+        "building": "yes",
+        "designation": "Safeway 3617",
+        "name": "Tom Thumb Fuel Station 3617",
+        "operator": "Safeway",
+        "website": "https://local.fuel.tomthumb.com/tx/arlington/2611-w-park-row-dr.html"
+      }
+    },
+    {
+      "type": "way",
+      "id": 422551794,
+      "center": {
+        "lat": 32.7321716,
+        "lon": -97.1485244
+      },
+      "tags": {
+        "addr:city": "Arlington",
+        "addr:housenumber": "301",
+        "addr:postcode": "76013",
+        "addr:state": "TX",
+        "addr:street": "South Bowen Road",
+        "amenity": "fuel",
+        "brand": "Kroger",
+        "brand:wikidata": "Q153417",
+        "fuel:diesel": "yes",
+        "fuel:gasoline": "yes",
+        "name": "Kroger",
+        "self_service": "yes",
+        "website": "https://www.kroger.com/stores/grocery/tx/arlington/ensenada/035/00688"
+      }
+    },
+    {
+      "type": "way",
+      "id": 471312686,
+      "center": {
+        "lat": 32.736616,
+        "lon": -97.1485102
+      },
+      "tags": {
+        "addr:city": "Arlington",
+        "addr:housenumber": "2425",
+        "addr:postcode": "76012",
+        "addr:state": "TX",
+        "addr:street": "West Division Street",
+        "amenity": "fuel",
+        "brand": "QuikTrip",
+        "brand:wikidata": "Q7271953",
+        "building": "retail",
+        "fuel:diesel": "yes",
+        "fuel:gasoline": "yes",
+        "name": "QuikTrip",
+        "opening_hours": "24/7",
+        "short_name": "QT"
+      }
+    },
+    {
+      "type": "way",
+      "id": 488141053,
+      "center": {
+        "lat": 32.7111948,
+        "lon": -97.0746368
+      },
+      "tags": {
+        "amenity": "fuel",
+        "brand": "Shell",
+        "brand:wikidata": "Q110716465",
+        "building": "roof",
+        "name": "Shell",
+        "self_service": "yes"
+      }
+    },
+    {
+      "type": "way",
+      "id": 641987355,
+      "center": {
+        "lat": 32.739494,
+        "lon": -97.096546
+      },
+      "tags": {
+        "amenity": "fuel",
+        "brand": "QuikTrip",
+        "brand:wikidata": "Q7271953",
+        "building": "roof",
+        "name": "QuikTrip",
+        "short_name": "QT"
+      }
+    },
+    {
+      "type": "way",
+      "id": 651614849,
+      "center": {
+        "lat": 32.6914018,
+        "lon": -97.080026
+      },
+      "tags": {
+        "amenity": "fuel",
+        "brand": "Shell",
+        "brand:wikidata": "Q110716465",
+        "name": "Shell"
+      }
+    },
+    {
+      "type": "way",
+      "id": 651796655,
+      "center": {
+        "lat": 32.7064698,
+        "lon": -97.0800197
+      },
+      "tags": {
+        "amenity": "fuel",
+        "building": "roof",
+        "name": "Fina",
+        "self_service": "yes"
+      }
+    },
+    {
+      "type": "way",
+      "id": 658552420,
+      "center": {
+        "lat": 32.7059207,
+        "lon": -97.097997
+      },
+      "tags": {
+        "addr:city": "Arlington",
+        "addr:housenumber": "2300",
+        "addr:postcode": "76014",
+        "addr:state": "TX",
+        "addr:street": "South Collins Street",
+        "amenity": "fuel",
+        "brand": "Valero",
+        "brand:wikidata": "Q1283291",
+        "building": "roof",
+        "layer": "1",
+        "name": "Valero",
+        "website": "https://locations.valero.com/en-us/LocationDetails/Index/2300-S-COLLINS-ST/0000002498"
+      }
+    },
+    {
+      "type": "way",
+      "id": 658878007,
+      "center": {
+        "lat": 32.688871,
+        "lon": -97.1153629
+      },
+      "tags": {
+        "amenity": "fuel",
+        "building": "roof"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1031518902,
+      "center": {
+        "lat": 32.7359873,
+        "lon": -97.1142431
+      },
+      "tags": {
+        "addr:city": "Arlington",
+        "addr:housenumber": "615",
+        "addr:postcode": "76010",
+        "addr:state": "TX",
+        "addr:street": "West Abram Street",
+        "amenity": "fuel",
+        "brand": "Valero",
+        "brand:wikidata": "Q1283291",
+        "name": "Valero",
+        "website": "https://locations.valero.com/en-us/LocationDetails/Index/615-W-ABRAM-ST/0000010624"
+      }
+    },
+    {
+      "type": "way",
+      "id": 1131821778,
+      "center": {
+        "lat": 32.6913212,
+        "lon": -97.1291912
+      },
+      "tags": {
+        "amenity": "fuel",
+        "building": "roof",
+        "source": "microsoft/BuildingFootprints"
+      }
+    }
+  ]
+}
