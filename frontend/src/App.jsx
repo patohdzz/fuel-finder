@@ -3,6 +3,8 @@ import './App.css'
 import SearchForm from './components/SearchForm'
 import SearchResults from './components/SearchResults'
 
+const API_URL = import.meta.env.VITE_API_URL
+
 function App() {
   // zipCode is the current value, setZipCode is the function used to change that value
   // initially "", then if you type a zip code react updates it
@@ -13,10 +15,11 @@ function App() {
   const [loading, setLoading] = useState(false)         // Is the API request still running?
   const [error, setError] = useState('')                // Did something go wrong?
   const [hasSearched, setHasSearched] = useState(false) // Has the user actually searched yet?
+  const [searchError, setSearchError] = useState('')
 
   async function searchFuelPrices() {
     // Deals with searching the backend
-    const url = `http://localhost:8080/api/fuel-prices?fuelType=${fuelType}&zipCode=${zipCode}`
+    const url = `${API_URL}/api/fuel-prices?fuelType=${fuelType}&zipCode=${zipCode}`
 
     setLoading(true)
     setError('')
@@ -53,6 +56,13 @@ function App() {
     // Deals with the form
     event.preventDefault()
 
+    const zipPattern = /^\d{5}$/
+    if (!zipPattern.test(zipCode)) {
+      setSearchError('ZIP code must contain exactly 5 digits.')
+      return
+    }
+    setSearchError('')
+
     searchFuelPrices()
   }
 
@@ -63,7 +73,7 @@ function App() {
   // }
   // to: POST /api/stations/1/prices
   async function handlePriceUpdate(stationId, fuelType, newPrice) {
-    const url = `http://localhost:8080/api/stations/${stationId}/prices`
+    const url = `${API_URL}/api/stations/${stationId}/prices`
 
     const response = await fetch(url, { // Don't continue until the update request has finished.
       method: 'POST',
@@ -107,6 +117,7 @@ function App() {
           setFuelType={setFuelType}
           handleSubmit={handleSubmit}
           loading={loading}
+          searchError={searchError}
         />
       </section>
 

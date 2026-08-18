@@ -30,7 +30,7 @@
 
   display: flex;
   gap: 16px;
-  align-items: flex-end;
+  align-items: flex-start;
 
   padding: 24px;
 
@@ -42,6 +42,7 @@
 .form-group {
   flex: 1;
   text-align: left;
+  align-self: flex-start;
 }
 
 .form-group label {
@@ -74,8 +75,17 @@
   border-color: transparent;
 }
 
+.form-error {
+  margin: 6px 0 0;
+  min-height: 20px;
+
+  font-size: 0.85rem;
+  color: #b91c1c;
+}
+
 .search-button {
   height: 44px;
+  margin-top: 27px;
 
   padding: 0 24px;
 
@@ -176,6 +186,13 @@
   color: #4b5563;
 }
 
+.last-updated {
+  margin: 10px 0 0;
+
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
 /* Cheapest Result */
 
 .cheapest-card {
@@ -219,6 +236,8 @@
   border-color: #fecaca;
   background-color: #fef2f2;
 }
+
+/* Update Price */
 
 .update-price-button {
   margin-top: 18px;
@@ -310,6 +329,7 @@
 
   .search-button {
     width: 100%;
+    margin-top: 0;
   }
 
   .results-section {

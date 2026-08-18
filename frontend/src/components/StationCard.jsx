@@ -3,6 +3,44 @@
 
 import { useState } from 'react'
 
+function formatTimeAgo(lastUpdated) {
+  const updatedTime = new Date(lastUpdated)
+  const currentTime = new Date()
+
+  const differenceInMilliseconds = currentTime - updatedTime
+  const differenceInMinutes = Math.floor(
+    differenceInMilliseconds / 60000
+  )
+
+  if (differenceInMinutes < 1) {
+    return 'Updated just now'
+  }
+
+  if (differenceInMinutes < 60) {
+    return `Updated ${differenceInMinutes} ${
+      differenceInMinutes === 1 ? 'minute' : 'minutes'
+    } ago`
+  }
+
+  const differenceInHours = Math.floor(
+    differenceInMinutes / 60
+  )
+
+  if (differenceInHours < 24) {
+    return `Updated ${differenceInHours} ${
+      differenceInHours === 1 ? 'hour' : 'hours'
+    } ago`
+  }
+
+  const differenceInDays = Math.floor(
+    differenceInHours / 24
+  )
+
+  return `Updated ${differenceInDays} ${
+    differenceInDays === 1 ? 'day' : 'days'
+  } ago`
+}
+
 function StationCard({
   result,
   isCheapest,
@@ -20,6 +58,11 @@ function StationCard({
 
     if (Number.isNaN(price) || price <= 0) {
       setUpdateMessage('Please enter a valid price.')
+      return
+    }
+
+    if (price > 10) {
+      setUpdateMessage('Price cannot be greater than $10')
       return
     }
 
@@ -73,6 +116,10 @@ function StationCard({
         {result.city}, {result.state} {result.zipCode}
       </p>
 
+      <p className="last-updated">
+        {formatTimeAgo(result.lastUpdated)}
+      </p>
+
       <button
         className="update-price-button"
         type="button"
@@ -98,6 +145,7 @@ function StationCard({
             type="number"
             step="0.01"
             min="0.01"
+            max="10"
             value={newPrice}
             onChange={(event) => setNewPrice(event.target.value)}
             placeholder={result.price.toFixed(2)}

@@ -5,7 +5,8 @@ function SearchForm({
   fuelType,
   setFuelType,
   handleSubmit,
-  loading
+  loading,
+  searchError
 }) {
   return (
     <form className="search-form" onSubmit={handleSubmit}>
@@ -19,7 +20,11 @@ function SearchForm({
           onChange={(event) => setZipCode(event.target.value)}
           placeholder="76010"
           maxLength="5"
+          inputMode="numeric"
         />
+        {searchError && (
+          <p className="form-error">{searchError}</p>
+        )}
       </div>
 
       <div className="form-group">
