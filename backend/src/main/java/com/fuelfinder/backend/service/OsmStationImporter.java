@@ -7,33 +7,38 @@ import com.fuelfinder.backend.model.Station;
 import com.fuelfinder.backend.repository.StationRepository;
 
 import org.springframework.core.io.ClassPathResource;
+// import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 
 @Service
 public class OsmStationImporter {
+    // parsing JSON into Station entities
 
     private final StationRepository stationRepository;
     private final JsonMapper jsonMapper;
+    private final OverpassClient overpassClient;
+
 
     public OsmStationImporter(
             StationRepository stationRepository,
-            JsonMapper jsonMapper) {
+            JsonMapper jsonMapper,
+            OverpassClient overpassClient) {
 
         this.stationRepository = stationRepository;
         this.jsonMapper = jsonMapper;
+        this.overpassClient = overpassClient;
     }
 
     public void importArlingtonStations() throws IOException {
+        int inserted = 0;
+        int updated = 0;
+        int skipped = 0;
 
-        ClassPathResource resource =
-                new ClassPathResource(
-                        "data/arlington-gas-stations.json"
-                );
+        String json = overpassClient.fetchArlingtonStations();
+        JsonNode root = jsonMapper.readTree(json);
 
-        JsonNode root =
-                jsonMapper.readTree(resource.getInputStream());
 
         JsonNode elements = root.get("elements");
 
@@ -50,18 +55,16 @@ public class OsmStationImporter {
 
             // For now, only import stations with ZIP codes.
             if (!tags.has("addr:postcode")) {
+                skipped++;
                 continue;
             }
-
-            // Avoid importing the same OSM station twice.
-            if (stationRepository
+            
+            // Change the importer from “skip” to “update”
+            Station station = stationRepository
                     .findByOsmTypeAndOsmId(osmType, osmId)
-                    .isPresent()) {
+                    .orElseGet(Station::new);
 
-                continue;
-            }
-
-            Station station = new Station();
+            boolean isNewStation = station.getId() == null;
 
             station.setOsmType(osmType);
             station.setOsmId(osmId);
@@ -153,6 +156,16 @@ public class OsmStationImporter {
             }
 
             stationRepository.save(station);
+            if (isNewStation) {
+                inserted++;
+            } else {
+                updated++;
+            }
         }
+        System.out.println(
+                "OSM import complete - inserted: " + inserted
+                + ", updated: " + updated
+                + ", skipped: " + skipped
+        );
     }
 }
