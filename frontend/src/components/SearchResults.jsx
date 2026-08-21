@@ -98,13 +98,17 @@ function SearchResults({
   return (
     <section className="results-section has-map">
       <div className={`results-columns ${hasBestValue ? 'results-columns--three' : ''}`}>
-        <StationsMap
-          results={results}
-          userLocation={userLocation}
-          selectedStationId={selectedStationId}
-          cheapestStationIds={cheapestStationIds}
-          bestValueStationIds={bestValueStationIds}
-        />
+        <div className="map-column">
+          <p className="map-hint">Click a gas station to see it on the map</p>
+
+          <StationsMap
+            results={results}
+            userLocation={userLocation}
+            selectedStationId={selectedStationId}
+            cheapestStationIds={cheapestStationIds}
+            bestValueStationIds={bestValueStationIds}
+          />
+        </div>
 
         <div className="results-column">
           <div className="results-header">
