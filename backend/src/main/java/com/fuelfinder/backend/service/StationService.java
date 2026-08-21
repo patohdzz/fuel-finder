@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 import com.fuelfinder.backend.dto.StationSearchResponse;
+import com.fuelfinder.backend.exception.MissingSearchCriteriaException;
 import com.fuelfinder.backend.model.FuelType;
 
 
@@ -66,8 +67,27 @@ public class StationService {
         );
     }
 
-    public List<StationSearchResponse> searchStations(String zipCode, FuelType fuelType) {
+    public List<StationSearchResponse> searchStations(String zipCode, String city, FuelType fuelType) {
 
-        return stationRepository.searchStationsByZipCodeAndFuelType(zipCode, fuelType);
+        String normalizedZipCode = blankToNull(zipCode);
+        String normalizedCity = blankToNull(city);
+
+        if (normalizedZipCode == null && normalizedCity == null) {
+            throw new MissingSearchCriteriaException();
+        }
+
+        return stationRepository.searchStationsByZipCodeAndCityAndFuelType(
+                normalizedZipCode,
+                normalizedCity,
+                fuelType
+        );
+    }
+
+    private String blankToNull(String value) {
+        return (value == null || value.isBlank()) ? null : value;
+    }
+
+    public List<String> getDistinctCities() {
+        return stationRepository.findDistinctCities();
     }
 }

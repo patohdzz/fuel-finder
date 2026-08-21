@@ -2,8 +2,13 @@
 function SearchForm({
   zipCode,
   setZipCode,
+  city,
+  setCity,
+  cities,
   fuelType,
   setFuelType,
+  tankGallons,
+  onTankGallonsChange,
   handleSubmit,
   loading,
   searchError
@@ -22,9 +27,23 @@ function SearchForm({
           maxLength="5"
           inputMode="numeric"
         />
-        {searchError && (
-          <p className="form-error">{searchError}</p>
-        )}
+      </div>
+
+      <div className="form-group">
+        <label htmlFor="city">City</label>
+
+        <select
+          id="city"
+          value={city}
+          onChange={(event) => setCity(event.target.value)}
+        >
+          <option value="">Any city</option>
+          {cities.map((cityName) => (
+            <option key={cityName} value={cityName}>
+              {cityName}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div className="form-group">
@@ -42,6 +61,20 @@ function SearchForm({
         </select>
       </div>
 
+      <div className="form-group">
+        <label htmlFor="tankGallons">Gallons to Buy</label>
+
+        <input
+          id="tankGallons"
+          type="number"
+          min="1"
+          max="30"
+          step="1"
+          value={tankGallons}
+          onChange={(event) => onTankGallonsChange(Number(event.target.value))}
+        />
+      </div>
+
       <button
         className="search-button"
         type="submit"
@@ -49,6 +82,10 @@ function SearchForm({
       >
         {loading ? 'Searching...' : 'Search'}
       </button>
+
+      {searchError && (
+        <p className="form-error">{searchError}</p>
+      )}
     </form>
   )
 }

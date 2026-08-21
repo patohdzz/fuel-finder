@@ -49,15 +49,25 @@ public class OverpassClient {
 
     private final RestClient restClient = RestClient.create();
 
-    public List<String> fetchDfwStations() {
+    // regionFilter: blank/null fetches every region; a region name (case-
+    // insensitive, e.g. "Arlington") fetches just that one -- lets a
+    // region that failed on a previous run be retried on its own, without
+    // re-fetching regions that already succeeded.
+    public List<String> fetchDfwStations(String regionFilter) {
+        List<Region> regionsToFetch = (regionFilter == null || regionFilter.isBlank())
+                ? DFW_REGIONS
+                : DFW_REGIONS.stream()
+                        .filter(region -> region.name().equalsIgnoreCase(regionFilter.trim()))
+                        .toList();
+
         List<String> responses = new ArrayList<>();
 
-        for (int i = 0; i < DFW_REGIONS.size(); i++) {
+        for (int i = 0; i < regionsToFetch.size(); i++) {
             if (i > 0) {
                 sleep(REQUEST_SPACING_MILLIS);
             }
 
-            Region region = DFW_REGIONS.get(i);
+            Region region = regionsToFetch.get(i);
 
             // One region failing after all retries shouldn't discard data
             // we already successfully fetched for the others -- skip it

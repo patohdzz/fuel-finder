@@ -20,9 +20,7 @@ function LocationPinIcon() {
 function LocationOptIn({
   userLocation,
   onRequestLocation,
-  isLoading,
-  tankGallons,
-  onTankGallonsChange
+  isLoading
 }) {
   return (
     <div className="location-opt-in">
@@ -43,20 +41,6 @@ function LocationOptIn({
           {isLoading && <span className="spinner" aria-hidden="true" />}
         </button>
       )}
-
-      <div className="tank-size-input">
-        <label htmlFor="tankGallons">Gallons to buy</label>
-
-        <input
-          id="tankGallons"
-          type="number"
-          min="1"
-          max="30"
-          step="1"
-          value={tankGallons}
-          onChange={(event) => onTankGallonsChange(Number(event.target.value))}
-        />
-      </div>
     </div>
   )
 }

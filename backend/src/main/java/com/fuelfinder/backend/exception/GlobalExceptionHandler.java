@@ -70,6 +70,22 @@ public class GlobalExceptionHandler {
                 .body(errorResponse);
     }
 
+    @ExceptionHandler(MissingSearchCriteriaException.class)
+    public ResponseEntity<ApiErrorResponse> handleMissingSearchCriteriaException(
+            MissingSearchCriteriaException exception) {
+
+        ApiErrorResponse errorResponse = new ApiErrorResponse(
+                400,
+                "Bad Request",
+                exception.getMessage(),
+                LocalDateTime.now()
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(errorResponse);
+    }
+
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ApiErrorResponse> handleInvalidRequestBody(
             HttpMessageNotReadableException exception) {

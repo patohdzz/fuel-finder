@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import './App.css'
 import SearchForm from './components/SearchForm'
 import SearchResults from './components/SearchResults'
@@ -21,10 +21,23 @@ function App() {
 
   const { location: userLocation, requestLocation, isLoading: locationLoading } = useUserLocation()
   const [tankGallons, setTankGallons] = useState(10) // how many gallons the user plans to buy, for the Best Value calculation
+  const [city, setCity] = useState('')
+  const [cities, setCities] = useState([]) // real cities that have stations, for the dropdown
+
+  useEffect(() => {
+    fetch(`${API_URL}/api/stations/cities`)
+      .then((response) => response.json())
+      .then(setCities)
+      .catch(() => setCities([]))
+  }, [])
+
 
   async function searchFuelPrices() {
     // Deals with searching the backend
-    const url = `${API_URL}/api/stations/search?zipCode=${zipCode}&fuelType=${fuelType}`
+    const params = new URLSearchParams({fuelType})
+    if (zipCode) params.set('zipCode', zipCode)
+    if (city.trim()) params.set('city', city.trim())
+    const url = `${API_URL}/api/stations/search?${params.toString()}`
 
     setLoading(true)
     setError('')
@@ -58,18 +71,27 @@ function App() {
 
   // Now other functions can also call searchFuelPrices
   function handleSubmit(event) {
-    // Deals with the form
     event.preventDefault()
 
+    const trimmedCity = city.trim()
+    const hasZip = zipCode.length > 0
+    const hasCity = trimmedCity.length > 0
+
+    if (!hasZip && !hasCity) {
+      setSearchError('Enter a ZIP code, a city, or both.')
+      return
+    }
+
     const zipPattern = /^\d{5}$/
-    if (!zipPattern.test(zipCode)) {
+    if (hasZip && !zipPattern.test(zipCode)) {
       setSearchError('ZIP code must contain exactly 5 digits.')
       return
     }
-    setSearchError('')
 
+    setSearchError('')
     searchFuelPrices()
   }
+
 
   // The browser will send JSON like:
   // {
@@ -115,11 +137,20 @@ function App() {
           Find the cheapest fuel prices near you.
         </p>
 
+        <p className="hero-instructions">
+          Enter a ZIP code, a city, or both — plus your fuel type — to compare local prices.
+        </p>
+
         <SearchForm
           zipCode={zipCode}
           setZipCode={setZipCode}
+          city={city}
+          setCity={setCity}
+          cities={cities}
           fuelType={fuelType}
           setFuelType={setFuelType}
+          tankGallons={tankGallons}
+          onTankGallonsChange={setTankGallons}
           handleSubmit={handleSubmit}
           loading={loading}
           searchError={searchError}
@@ -129,8 +160,6 @@ function App() {
           userLocation={userLocation}
           onRequestLocation={requestLocation}
           isLoading={locationLoading}
-          tankGallons={tankGallons}
-          onTankGallonsChange={setTankGallons}
         />
 
       </section>

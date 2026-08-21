@@ -28,16 +28,18 @@ public class OsmStationImporter {
         this.overpassClient = overpassClient;
     }
 
-    public void importDfwStations() throws IOException {
+    // regionFilter: blank/null imports all regions; a region name (e.g.
+    // "Arlington") imports just that one.
+    public void importDfwStations(String regionFilter) throws IOException {
         int inserted = 0;
         int updated = 0;
         int skipped = 0;
 
-        // One response per city (see OverpassClient) -- looped and merged
-        // here. A station near a city border could theoretically show up
-        // in two responses, but findByOsmTypeAndOsmId makes re-processing
-        // it a harmless no-op update, not a duplicate.
-        for (String json : overpassClient.fetchDfwStations()) {
+        // One response per region (see OverpassClient) -- looped and
+        // merged here. A station near a region border could theoretically
+        // show up in two responses, but findByOsmTypeAndOsmId makes
+        // re-processing it a harmless no-op update, not a duplicate.
+        for (String json : overpassClient.fetchDfwStations(regionFilter)) {
             JsonNode root = jsonMapper.readTree(json);
             JsonNode elements = root.get("elements");
 

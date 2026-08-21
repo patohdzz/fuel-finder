@@ -44,10 +44,19 @@ public class StationController {
 
     @GetMapping("/api/stations/search")
     public List<StationSearchResponse> searchStations(
-            @RequestParam String zipCode,
+            @RequestParam(required = false) String zipCode,
+            @RequestParam(required = false) String city,
             @RequestParam FuelType fuelType) {
 
-        return stationService.searchStations(zipCode, fuelType);
+        return stationService.searchStations(zipCode, city, fuelType);
+    }
+
+    // Backs the city dropdown on the frontend -- only cities that actually
+    // have stations in the database, not a hardcoded list.
+    @GetMapping("/api/stations/cities")
+    public List<String> getCities() {
+
+        return stationService.getDistinctCities();
     }
 }
 
