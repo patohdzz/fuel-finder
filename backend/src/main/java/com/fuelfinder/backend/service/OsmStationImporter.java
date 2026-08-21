@@ -1,13 +1,10 @@
 package com.fuelfinder.backend.service;
 
 import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 import com.fuelfinder.backend.model.Station;
 import com.fuelfinder.backend.repository.StationRepository;
 
-import org.springframework.core.io.ClassPathResource;
-// import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -31,137 +28,134 @@ public class OsmStationImporter {
         this.overpassClient = overpassClient;
     }
 
-    public void importArlingtonStations() throws IOException {
+    public void importDfwStations() throws IOException {
         int inserted = 0;
         int updated = 0;
         int skipped = 0;
 
-        String json = overpassClient.fetchArlingtonStations();
-        JsonNode root = jsonMapper.readTree(json);
+        // One response per city (see OverpassClient) -- looped and merged
+        // here. A station near a city border could theoretically show up
+        // in two responses, but findByOsmTypeAndOsmId makes re-processing
+        // it a harmless no-op update, not a duplicate.
+        for (String json : overpassClient.fetchDfwStations()) {
+            JsonNode root = jsonMapper.readTree(json);
+            JsonNode elements = root.get("elements");
 
+            for (JsonNode element : elements) {
 
-        JsonNode elements = root.get("elements");
+                String osmType = element.get("type").asText();
+                long osmId = element.get("id").asLong();
 
-        for (JsonNode element : elements) {
+                JsonNode tags = element.get("tags");
 
-            String osmType = element.get("type").asText();
-            long osmId = element.get("id").asLong();
+                if (tags == null) {
+                    continue;
+                }
 
-            JsonNode tags = element.get("tags");
+                // Only import stations with both a ZIP code and a city --
+                // across a multi-city bounding box there's no single safe
+                // fallback city to guess for stations OSM doesn't tag.
+                if (!tags.has("addr:postcode") || !tags.has("addr:city")) {
+                    skipped++;
+                    continue;
+                }
 
-            if (tags == null) {
-                continue;
-            }
+                // Change the importer from “skip” to “update”
+                Station station = stationRepository
+                        .findByOsmTypeAndOsmId(osmType, osmId)
+                        .orElseGet(Station::new);
 
-            // For now, only import stations with ZIP codes.
-            if (!tags.has("addr:postcode")) {
-                skipped++;
-                continue;
-            }
-            
-            // Change the importer from “skip” to “update”
-            Station station = stationRepository
-                    .findByOsmTypeAndOsmId(osmType, osmId)
-                    .orElseGet(Station::new);
+                boolean isNewStation = station.getId() == null;
 
-            boolean isNewStation = station.getId() == null;
+                station.setOsmType(osmType);
+                station.setOsmId(osmId);
 
-            station.setOsmType(osmType);
-            station.setOsmId(osmId);
+                /*
+                 * Name:
+                 * Prefer the actual OSM name.
+                 * Otherwise use brand.
+                 * Otherwise fall back to "Gas Station".
+                 */
+                if (tags.has("name")) {
+                    station.setName(tags.get("name").asText());
+                } else if (tags.has("brand")) {
+                    station.setName(tags.get("brand").asText());
+                } else {
+                    station.setName("Gas Station");
+                }
 
-            /*
-             * Name:
-             * Prefer the actual OSM name.
-             * Otherwise use brand.
-             * Otherwise fall back to "Gas Station".
-             */
-            if (tags.has("name")) {
-                station.setName(tags.get("name").asText());
-            } else if (tags.has("brand")) {
-                station.setName(tags.get("brand").asText());
-            } else {
-                station.setName("Gas Station");
-            }
+                /*
+                 * Address
+                 */
+                String houseNumber =
+                        tags.has("addr:housenumber")
+                                ? tags.get("addr:housenumber").asText()
+                                : "";
 
-            /*
-             * Address
-             */
-            String houseNumber =
-                    tags.has("addr:housenumber")
-                            ? tags.get("addr:housenumber").asText()
-                            : "";
+                String street =
+                        tags.has("addr:street")
+                                ? tags.get("addr:street").asText()
+                                : "";
 
-            String street =
-                    tags.has("addr:street")
-                            ? tags.get("addr:street").asText()
-                            : "";
-
-            station.setAddress(
-                    (houseNumber + " " + street).trim()
-            );
-
-            /*
-             * These results came from our Arlington test query.
-             *
-             * If OSM provides city/state, use them.
-             * Otherwise use Arlington/TX for THIS initial batch.
-             */
-            station.setCity(
-                    tags.has("addr:city")
-                            ? tags.get("addr:city").asText()
-                            : "Arlington"
-            );
-
-            station.setState(
-                    tags.has("addr:state")
-                            ? tags.get("addr:state").asText()
-                            : "TX"
-            );
-
-            station.setZipCode(
-                    tags.get("addr:postcode").asText()
-            );
-
-            /*
-             * Nodes store coordinates directly.
-             *
-             * Ways/relations returned by our Overpass query
-             * store them inside "center".
-             */
-            if (element.has("lat") && element.has("lon")) {
-
-                station.setLatitude(
-                        element.get("lat").asDouble()
+                station.setAddress(
+                        (houseNumber + " " + street).trim()
                 );
 
-                station.setLongitude(
-                        element.get("lon").asDouble()
+                // City is guaranteed present at this point (skipped above otherwise).
+                station.setCity(tags.get("addr:city").asText());
+
+                station.setState(
+                        tags.has("addr:state")
+                                ? tags.get("addr:state").asText()
+                                : "TX"
                 );
 
-            } else if (element.has("center")) {
-
-                JsonNode center = element.get("center");
-
-                station.setLatitude(
-                        center.get("lat").asDouble()
+                station.setZipCode(
+                        tags.get("addr:postcode").asText()
                 );
 
-                station.setLongitude(
-                        center.get("lon").asDouble()
-                );
+                /*
+                 * Nodes store coordinates directly.
+                 *
+                 * Ways/relations returned by our Overpass query
+                 * store them inside "center".
+                 */
+                if (element.has("lat") && element.has("lon")) {
 
-            } else {
-                // Can't use a station without coordinates.
-                continue;
-            }
+                    station.setLatitude(
+                            element.get("lat").asDouble()
+                    );
 
-            stationRepository.save(station);
-            if (isNewStation) {
-                inserted++;
-            } else {
-                updated++;
+                    station.setLongitude(
+                            element.get("lon").asDouble()
+                    );
+
+                } else if (element.has("center")) {
+
+                    JsonNode center = element.get("center");
+
+                    station.setLatitude(
+                            center.get("lat").asDouble()
+                    );
+
+                    station.setLongitude(
+                            center.get("lon").asDouble()
+                    );
+
+                } else {
+                    // Can't use a station without coordinates.
+                    continue;
+                }
+
+                stationRepository.save(station);
+                if (isNewStation) {
+                    inserted++;
+                } else {
+                    updated++;
+                }
             }
         }
+
         System.out.println(
                 "OSM import complete - inserted: " + inserted
                 + ", updated: " + updated

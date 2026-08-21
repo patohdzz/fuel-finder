@@ -23,7 +23,7 @@ public class StationImportRunner implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        osmStationImporter.importArlingtonStations();
+        osmStationImporter.importDfwStations();
     }
 }
 
