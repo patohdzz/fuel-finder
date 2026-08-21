@@ -22,8 +22,17 @@ public class StationImportRunner implements CommandLineRunner {
     }
 
     @Override
-    public void run(String... args) throws Exception {
-        osmStationImporter.importDfwStations();
+    public void run(String... args) {
+        // A failed import must never take the whole app down with it --
+        // if this rethrew, a CommandLineRunner failure fails the entire
+        // Spring ApplicationContext, meaning the web server never starts
+        // and the live site goes down. Caught and logged instead: the app
+        // starts normally either way, just without fresh station data.
+        try {
+            osmStationImporter.importDfwStations();
+        } catch (Exception e) {
+            System.out.println("OSM import failed, continuing startup without it: " + e.getMessage());
+        }
     }
 }
 

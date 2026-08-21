@@ -36,12 +36,16 @@ public class OverpassClient {
     // Overpass's public server expects clients to space out heavy queries
     // rather than firing several back-to-back -- doing that reliably
     // triggered 504s in testing even though each box succeeded on its own.
-    private static final long REQUEST_SPACING_MILLIS = 2000;
+    private static final long REQUEST_SPACING_MILLIS = 3000;
 
-    // One retry with a longer backoff, since a 504 here is the server
-    // being transiently overloaded, not something a request can fix.
-    private static final int MAX_ATTEMPTS_PER_BOX = 2;
-    private static final long RETRY_DELAY_MILLIS = 5000;
+    // Overpass enforces a small number of *concurrent* query slots per IP
+    // (its own /api/status reports "Rate limit: 2"), not a simple per-time
+    // counter. On a shared host like Railway, other tenants' traffic on
+    // the same outbound IP can occupy those slots -- outside anything we
+    // control. More attempts with a growing backoff gives contention a
+    // real chance to clear instead of retrying into the same busy window.
+    private static final int MAX_ATTEMPTS_PER_BOX = 3;
+    private static final long RETRY_DELAY_MILLIS = 8000;
 
     private final RestClient restClient = RestClient.create();
 
@@ -74,7 +78,7 @@ public class OverpassClient {
                 System.out.println(region.name() + " failed: " + e.getCause().getMessage());
 
                 if (attempt < MAX_ATTEMPTS_PER_BOX) {
-                    sleep(RETRY_DELAY_MILLIS);
+                    sleep(RETRY_DELAY_MILLIS * attempt); // 8s, then 16s
                 }
             }
         }
