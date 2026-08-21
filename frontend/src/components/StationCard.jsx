@@ -85,7 +85,7 @@ function StationCard({
       return
     }
 
-    if (result.price !== null && Math.abs(price - result.price) > 0.5) {
+    if (result.price !== null && Math.abs(price - result.price) > 1.0) {
       setUpdateMessage(
         `That's too different from the current price ($${result.price.toFixed(2)}). Please double check.`
       )

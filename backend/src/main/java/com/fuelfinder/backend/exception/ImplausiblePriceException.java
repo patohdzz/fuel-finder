@@ -5,7 +5,7 @@ public class ImplausiblePriceException extends RuntimeException {
     public ImplausiblePriceException(double currentPrice, double submittedPrice) {
         super(String.format(
                 "Price $%.2f is too different from the current price ($%.2f). "
-                        + "Prices can only change by up to $0.50 at a time -- please double check.",
+                        + "Prices can only change by up to $1.00 at a time -- please double check.",
                 submittedPrice,
                 currentPrice));
     }

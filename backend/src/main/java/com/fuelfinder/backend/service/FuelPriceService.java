@@ -20,7 +20,7 @@ import com.fuelfinder.backend.exception.ImplausiblePriceException;
 @Service // this class will contain business logic
 public class FuelPriceService {
 
-    private static final double MAX_PRICE_CHANGE = 0.50; // guards against typos like $1.00 instead of $2.80
+    private static final double MAX_PRICE_CHANGE = 1.00; // guards against typos like $1.00 instead of $2.80
     private static final double FIRST_REPORT_MAX_PRICE = 10.0; // no existing price to compare a first report against
 
     private final FuelPriceRepository fuelPriceRepository;

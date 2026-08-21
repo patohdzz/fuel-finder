@@ -1,9 +1,7 @@
 package com.fuelfinder.backend.repository;
 
 import com.fuelfinder.backend.model.FuelPrice;
-import javax.swing.Spring;
 
-import org.hibernate.annotations.processing.Find;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

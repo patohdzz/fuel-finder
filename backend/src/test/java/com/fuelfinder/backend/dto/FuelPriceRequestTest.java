@@ -25,7 +25,7 @@ class FuelPriceRequestTest {
         validator = factory.getValidator();
     }
 
-    // Upper-bound price checks ($10 first-report ceiling, $0.50 max change)
+    // Upper-bound price checks ($10 first-report ceiling, $1.00 max change)
     // now live in FuelPriceService instead of here, since they depend on
     // whether the station already has a price to compare against --
     // see FuelPriceServiceTest for those cases.
