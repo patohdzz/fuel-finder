@@ -57,7 +57,17 @@ public class OverpassClient {
                 sleep(REQUEST_SPACING_MILLIS);
             }
 
-            responses.add(fetchWithRetry(DFW_REGIONS.get(i)));
+            Region region = DFW_REGIONS.get(i);
+
+            // One region failing after all retries shouldn't discard data
+            // we already successfully fetched for the others -- skip it
+            // and keep going instead of letting the exception propagate
+            // and wipe out everything collected so far.
+            try {
+                responses.add(fetchWithRetry(region));
+            } catch (OverpassApiException e) {
+                System.out.println(region.name() + " skipped after all retries failed.");
+            }
         }
 
         return responses;
