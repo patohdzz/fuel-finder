@@ -41,10 +41,29 @@ function formatTimeAgo(lastUpdated) {
   } ago`
 }
 
+// Gas prices move fast -- a price reported a day ago is a real gamble.
+// Flag it visually instead of letting old data look just as trustworthy
+// as a fresh report.
+function getStalenessClass(lastUpdated) {
+  const hoursAgo = (new Date() - new Date(lastUpdated)) / (1000 * 60 * 60)
+
+  if (hoursAgo >= 24) {
+    return 'last-updated--stale-danger'
+  }
+
+  if (hoursAgo >= 12) {
+    return 'last-updated--stale-warning'
+  }
+
+  return ''
+}
+
 function StationCard({
   result,
   isCheapest,
-  onUpdatePrice
+  showDriveCost,
+  onUpdatePrice,
+  onSelect
 }) {
   const [showUpdateForm, setShowUpdateForm] = useState(false)
   const [newPrice, setNewPrice] = useState('') // This state belongs specifically to that StationCard.
@@ -61,8 +80,15 @@ function StationCard({
       return
     }
 
-    if (price > 10) {
-      setUpdateMessage('Price cannot be greater than $10')
+    if (result.price === null && price > 10) {
+      setUpdateMessage("Price cannot be greater than $10 for a station's first reported price.")
+      return
+    }
+
+    if (result.price !== null && Math.abs(price - result.price) > 0.5) {
+      setUpdateMessage(
+        `That's too different from the current price ($${result.price.toFixed(2)}). Please double check.`
+      )
       return
     }
 
@@ -86,62 +112,85 @@ function StationCard({
     }
   }
 
+  // In the Best Value column, the headline number is price-per-gallon
+  // plus the round-trip drive cost spread across the gallons being
+  // bought, not just the raw pump price -- that's the whole point of
+  // that column.
+  const displayedPrice =
+    showDriveCost && result.totalCost != null ? result.totalCost : result.price
+
   return (
     <article
-      className={`station-card ${isCheapest ? 'cheapest-card' : ''}`}
+      className={`station-card ${
+        isCheapest ? (showDriveCost ? 'best-value-card' : 'cheapest-card') : ''
+      }`}
+      onClick={onSelect}
     >
       <div className="station-card-header">
         <div>
           {isCheapest && (
-            <span className="best-price-badge">
-              Best Price
+            <span className={`best-price-badge ${showDriveCost ? 'best-value-badge' : ''}`}>
+              {showDriveCost ? 'Best Value' : 'Best Price'}
             </span>
           )}
 
           <h3>{result.stationName}</h3>
         </div>
 
-        <div className={result.price === null ? 'no-price' : 'price'}>
-          {result.price === null ? 'No price reported' : `$${result.price.toFixed(2)}`}
+        <div className={result.price === null ? 'no-price' : `price ${showDriveCost ? 'price--value' : ''}`}>
+          {result.price === null ? 'No price reported' : `$${displayedPrice.toFixed(2)}`}
         </div>
-        {/* <div className="price">
-          ${result.price.toFixed(2)}
-        </div> */}
       </div>
 
       <p className="fuel-type">
         {result.fuelType}
       </p>
 
-      <p className="station-address">
-        {result.address}
-        <br />
-        {result.city}, {result.state} {result.zipCode}
-      </p>
-      
-      {result.lastUpdated && (
-        <p className="last-updated">
-          {formatTimeAgo(result.lastUpdated)}
+      <div className="station-info-row">
+        <p className="station-address-line">{result.address}</p>
+
+        {!showDriveCost && result.lastUpdated && (
+          <p className={`last-updated ${getStalenessClass(result.lastUpdated)}`}>
+            {formatTimeAgo(result.lastUpdated)}
+          </p>
+        )}
+      </div>
+
+      <div className="station-info-row">
+        <p className="station-address-line">
+          {result.city}, {result.state} {result.zipCode}
+        </p>
+
+        {/* Updating a price from the Best Value card doesn't make sense --
+            it's the same station shown on the Fuel Prices card, just re-ranked. */}
+        {!showDriveCost && (
+          <button
+            className="update-price-button"
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation()
+              setShowUpdateForm(!showUpdateForm)
+              setUpdateMessage('')
+            }}
+          >
+            {showUpdateForm ? 'Cancel' : result.price === null ? 'Report Price' : 'Update Price'}
+          </button>
+        )}
+      </div>
+
+      {showDriveCost && result.distanceMiles !== null && (
+        <p className="drive-estimate">
+          ≈{result.distanceMiles.toFixed(1)} mi away
+          {result.driveCostPerGallon !== null && (
+            <> · ${result.price.toFixed(2)} pump price + ${result.driveCostPerGallon.toFixed(2)}/gal for the drive</>
+          )}
         </p>
       )}
-      {/* <p className="last-updated">
-        {formatTimeAgo(result.lastUpdated)}
-      </p> */}
 
-      <button
-        className="update-price-button"
-        type="button"
-        onClick={() => {
-          setShowUpdateForm(!showUpdateForm)
-          setUpdateMessage('')
-        }}
-      >
-        {showUpdateForm ? 'Cancel' : result.price === null ? 'Report Price' : 'Update Price'}
-      </button>
-
-      {showUpdateForm && (
+      {!showDriveCost && showUpdateForm && (
         <form
           className="update-price-form"
+          onClick={(event) => event.stopPropagation()}
           onSubmit={handlePriceSubmit}
         >
           <label htmlFor={`price-${result.stationId}`}>
@@ -153,7 +202,7 @@ function StationCard({
             type="number"
             step="0.01"
             min="0.01"
-            max="10"
+            max={result.price === null ? '10' : undefined}
             value={newPrice}
             onChange={(event) => setNewPrice(event.target.value)}
             placeholder={result.price === null ? 'Enter price' : result.price.toFixed(2)}
@@ -165,7 +214,7 @@ function StationCard({
         </form>
       )}
 
-      {updateMessage && (
+      {!showDriveCost && updateMessage && (
         <p className="update-message">
           {updateMessage}
         </p>

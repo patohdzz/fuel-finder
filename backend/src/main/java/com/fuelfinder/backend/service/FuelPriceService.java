@@ -15,9 +15,13 @@ import com.fuelfinder.backend.dto.FuelPriceRequest;
 import com.fuelfinder.backend.dto.FuelPriceResponse;
 
 import com.fuelfinder.backend.exception.StationNotFoundException;
+import com.fuelfinder.backend.exception.ImplausiblePriceException;
 
 @Service // this class will contain business logic
 public class FuelPriceService {
+
+    private static final double MAX_PRICE_CHANGE = 0.50; // guards against typos like $1.00 instead of $2.80
+    private static final double FIRST_REPORT_MAX_PRICE = 10.0; // no existing price to compare a first report against
 
     private final FuelPriceRepository fuelPriceRepository;
     private final StationRepository stationRepository;
@@ -43,6 +47,18 @@ public class FuelPriceService {
 
         // look for if a price exists already, if so update it, if not create a new one
         FuelPrice fuelPrice = fuelPriceRepository.findByStation_IdAndFuelType(stationId, request.getFuelType()).orElse(new FuelPrice());
+
+        if (fuelPrice.getPrice() == null) {
+            // No existing price to compare against -- fall back to a flat ceiling.
+            if (request.getPrice() > FIRST_REPORT_MAX_PRICE) {
+                throw new ImplausiblePriceException(String.format(
+                        "Price cannot be greater than $%.2f for a station's first reported price.",
+                        FIRST_REPORT_MAX_PRICE));
+            }
+        } else if (Math.abs(request.getPrice() - fuelPrice.getPrice()) > MAX_PRICE_CHANGE) {
+            throw new ImplausiblePriceException(fuelPrice.getPrice(), request.getPrice());
+        }
+
         // We're creating the actual database entity ourselves.
         // Then we copy only the fields the client is allowed to control:
         fuelPrice.setPrice(request.getPrice());

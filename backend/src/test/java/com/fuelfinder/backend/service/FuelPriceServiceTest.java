@@ -2,6 +2,7 @@ package com.fuelfinder.backend.service;
 
 import com.fuelfinder.backend.dto.FuelPriceRequest;
 import com.fuelfinder.backend.dto.FuelPriceResponse;
+import com.fuelfinder.backend.exception.ImplausiblePriceException;
 import com.fuelfinder.backend.exception.StationNotFoundException;
 import com.fuelfinder.backend.model.FuelPrice;
 import com.fuelfinder.backend.model.FuelType;
@@ -132,6 +133,71 @@ class FuelPriceServiceTest {
 
         verify(fuelPriceRepository, times(1))
                 .save(existingFuelPrice);
+    }
+
+    @Test
+    void createFuelPrice_throwsException_whenFirstReportExceedsCeiling() {
+
+        // ARRANGE
+        Long stationId = 1L;
+
+        FuelPriceRequest request = new FuelPriceRequest();
+        request.setPrice(10.01);
+        request.setFuelType(FuelType.MIDGRADE);
+
+        Station station = mock(Station.class);
+
+        when(stationRepository.findById(stationId))
+                .thenReturn(Optional.of(station));
+
+        when(fuelPriceRepository.findByStation_IdAndFuelType(
+                stationId,
+                FuelType.MIDGRADE
+        )).thenReturn(Optional.empty());
+
+        // ACT + ASSERT
+        assertThrows(
+                ImplausiblePriceException.class,
+                () -> fuelPriceService.createFuelPrice(stationId, request)
+        );
+
+        verify(fuelPriceRepository, never())
+                .save(any(FuelPrice.class));
+    }
+
+    @Test
+    void createFuelPrice_throwsException_whenUpdateChangesTooMuch() {
+
+        // ARRANGE
+        Long stationId = 1L;
+
+        FuelPriceRequest request = new FuelPriceRequest();
+        request.setPrice(5.00);
+        request.setFuelType(FuelType.MIDGRADE);
+
+        Station station = mock(Station.class);
+
+        FuelPrice existingFuelPrice = new FuelPrice();
+        existingFuelPrice.setPrice(3.15);
+        existingFuelPrice.setFuelType(FuelType.MIDGRADE);
+        existingFuelPrice.setStation(station);
+
+        when(stationRepository.findById(stationId))
+                .thenReturn(Optional.of(station));
+
+        when(fuelPriceRepository.findByStation_IdAndFuelType(
+                stationId,
+                FuelType.MIDGRADE
+        )).thenReturn(Optional.of(existingFuelPrice));
+
+        // ACT + ASSERT
+        assertThrows(
+                ImplausiblePriceException.class,
+                () -> fuelPriceService.createFuelPrice(stationId, request)
+        );
+
+        verify(fuelPriceRepository, never())
+                .save(any(FuelPrice.class));
     }
 
     @Test

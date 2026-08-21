@@ -2,6 +2,8 @@ import { useState } from 'react'
 import './App.css'
 import SearchForm from './components/SearchForm'
 import SearchResults from './components/SearchResults'
+import useUserLocation from './hooks/useUserLocation'
+import LocationOptIn from './components/LocationOptIn'
 
 const API_URL = import.meta.env.VITE_API_URL
 
@@ -16,6 +18,9 @@ function App() {
   const [error, setError] = useState('')                // Did something go wrong?
   const [hasSearched, setHasSearched] = useState(false) // Has the user actually searched yet?
   const [searchError, setSearchError] = useState('')
+
+  const { location: userLocation, requestLocation, isLoading: locationLoading } = useUserLocation()
+  const [tankGallons, setTankGallons] = useState(10) // how many gallons the user plans to buy, for the Best Value calculation
 
   async function searchFuelPrices() {
     // Deals with searching the backend
@@ -103,7 +108,7 @@ function App() {
   return (
     <main className="app">
       {/* search area */}
-      <section className="hero"> 
+      <section className="hero">
         <h1>FuelFinder</h1>
 
         <p>
@@ -119,6 +124,15 @@ function App() {
           loading={loading}
           searchError={searchError}
         />
+
+        <LocationOptIn
+          userLocation={userLocation}
+          onRequestLocation={requestLocation}
+          isLoading={locationLoading}
+          tankGallons={tankGallons}
+          onTankGallonsChange={setTankGallons}
+        />
+
       </section>
 
       {/* search results */}
@@ -128,9 +142,25 @@ function App() {
         error={error}
         hasSearched={hasSearched}
         onUpdatePrice={handlePriceUpdate}
+        userLocation={userLocation}
+        tankGallons={tankGallons}
+
       />
+
+      <footer className="app-footer">
+        <a href="https://github.com/patohdzz/fuel-finder" target="_blank" rel="noreferrer">
+          GitHub
+        </a>
+        <span className="footer-divider">·</span>
+        Station data &copy;{' '}
+        <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">
+          OpenStreetMap
+        </a>{' '}
+        contributors
+      </footer>
     </main>
   )
+
 }
 
 export default App

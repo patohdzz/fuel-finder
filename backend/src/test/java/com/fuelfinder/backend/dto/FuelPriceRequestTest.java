@@ -25,28 +25,10 @@ class FuelPriceRequestTest {
         validator = factory.getValidator();
     }
 
-    @Test
-    void priceAboveTenDollars_failsValidation() {
-        FuelPriceRequest request = new FuelPriceRequest();
-        request.setPrice(10.01);
-        request.setFuelType(FuelType.REGULAR);
-
-        Set<ConstraintViolation<FuelPriceRequest>> violations = validator.validate(request);
-
-        assertEquals(1, violations.size());
-        assertEquals("Price cannot be greater than $10", violations.iterator().next().getMessage());
-    }
-
-    @Test
-    void priceOfExactlyTenDollars_passesValidation() {
-        FuelPriceRequest request = new FuelPriceRequest();
-        request.setPrice(10.0);
-        request.setFuelType(FuelType.REGULAR);
-
-        Set<ConstraintViolation<FuelPriceRequest>> violations = validator.validate(request);
-
-        assertTrue(violations.isEmpty());
-    }
+    // Upper-bound price checks ($10 first-report ceiling, $0.50 max change)
+    // now live in FuelPriceService instead of here, since they depend on
+    // whether the station already has a price to compare against --
+    // see FuelPriceServiceTest for those cases.
 
     @Test
     void priceAtOrBelowZero_failsValidation() {
