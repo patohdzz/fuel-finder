@@ -30,7 +30,10 @@ public class OverpassClient {
     private static final List<Region> DFW_REGIONS = List.of(
             new Region("Dallas", "32.65,-96.95,32.90,-96.65"),
             new Region("Fort Worth", "32.60,-97.50,32.90,-97.20"),
-            new Region("Arlington", "32.68,-97.16,32.75,-97.07")
+            // Full city limits -- the original box (32.68,-97.16,32.75,-97.07)
+            // was a small early test area from before Dallas/Fort Worth were
+            // added, and only covered central/north Arlington.
+            new Region("Arlington", "32.61,-97.20,32.79,-97.01")
     );
 
     // Overpass's public server expects clients to space out heavy queries
